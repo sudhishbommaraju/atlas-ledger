@@ -1,37 +1,60 @@
 import { ParsedRecord, RecordType } from '../types'
 
-export const REF_KEYS = [
-  "transaction_id", "transactionid", "txn_id", "txn", "id",
-  "reference", "ref", "payment_id", "settlement_id", "external_id",
-  "merchant_reference", "merchantreference", "payment_reference",
-  "paymentreference", "balance_transaction", "balancetransaction",
-  "statement_reference", "statementreference", "booking_reference",
-  "bookingreference"
-]
+export const TRANSACTION_REFERENCE_FIELDS = [
+  "transaction_id",
+  "transactionid",
+  "txn_id",
+  "txn",
+  "ledger_reference",
+  "ledgerreference",
+  "internal_reference",
+  "internalreference",
+  "merchant_reference",
+  "merchantreference",
+  "payment_id",
+  "paymentid",
+  "charge_id",
+  "chargeid",
+  "source_transaction",
+  "sourcetransaction",
+  "reference",
+  "ref",
+  "id"
+];
 
-export const AMT_KEYS = [
+export const BATCH_FIELDS = [
+  "settlement_id",
+  "settlementid",
+  "settlement_batch",
+  "settlementbatch",
+  "batch_id",
+  "batchid",
+  "payout_id",
+  "payoutid"
+];
+
+export const AMOUNT_FIELDS = [
   "amount", "gross_amount", "grossamount", "net_amount", "netamount",
   "settlement_amount", "settlementamount", "debit", "credit", "value",
   "payout_amount", "payoutamount", "gross", "net", "paid_amount", "paidamount",
-  "reserve_hold", "reserveamount", "reserve"
+  "bank_credit", "bank_debit", "credit_amount", "debit_amount",
+  "transaction_amount", "posted_amount"
 ]
 
 export const DESC_KEYS = [
   "description", "memo", "details", "narrative", "counterparty",
   "merchant", "payee", "booking_text", "bookingtext"
 ]
+
 const DATE_KEYS = ['date', 'settlement_date', 'transaction_date', 'value_date', 'posting_date', 'created_at', 'timestamp', 'txn_date']
 const CCY_KEYS = ['currency', 'ccy', 'iso_currency', 'currency_code']
 const TYPE_KEYS = ['type', 'transaction_type', 'txn_type', 'record_type', 'entry_type', 'category']
 
 function pick(row: Record<string, string>, keys: string[]): string {
   for (const k of keys) {
-    // some normalized keys might not perfectly match if spaces weren't replaced, but we lowercase them in xlsx.ts
-    // Let's also check if any key includes the target key to be safe, but exact match is better.
     if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
       return String(row[k]).trim()
     }
-    // Check if any key *includes* the target (e.g. "Net Amount (EUR)")
     const matchingKey = Object.keys(row).find(rowKey => rowKey.includes(k));
     if (matchingKey && row[matchingKey] !== undefined && row[matchingKey] !== null && String(row[matchingKey]).trim() !== '') {
         return String(row[matchingKey]).trim()
@@ -48,7 +71,7 @@ function detectType(row: Record<string, string>, raw_type: string, amount: numbe
   if (/reserve|hold|rolling.reserve/.test(t)) return 'reserve'
   if (/payout|disbursement|transfer.out/.test(t)) return 'payout'
   if (/settle|settlement|cleared|credit/.test(t)) return 'settlement'
-  // infer from amount sign and description
+  
   const desc = pick(row, DESC_KEYS).toLowerCase()
   if (/refund/.test(desc) && amount < 0) return 'refund'
   if (/chargeback/.test(desc)) return 'chargeback'
@@ -67,8 +90,11 @@ function makeId(source: string, reference: string, amount: number, index: number
   return Math.abs(hash).toString(16).padStart(8, '0')
 }
 
-function normalizeHeader(header: string): string {
-  return header.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+function normalizeHeader(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[\s_\-]/g, "")
+    .replace(/[^\w]/g, "");
 }
 
 function getMappedValue(
@@ -77,13 +103,25 @@ function getMappedValue(
 ): { value: unknown; detectedColumn?: string } {
   const normalizedCandidates = candidates.map(normalizeHeader);
 
-  for (const [key, value] of Object.entries(row)) {
-    if (normalizedCandidates.includes(normalizeHeader(key))) {
-      return { value, detectedColumn: key };
+  // Exact matches first, respecting candidate priority
+  for (const cand of normalizedCandidates) {
+    for (const [key, value] of Object.entries(row)) {
+      if (normalizeHeader(key) === cand) {
+        if (value !== undefined && String(value).trim() !== "") {
+          return { value, detectedColumn: key };
+        }
+      }
     }
-    // Fallback partial match if exact fails
-    if (normalizedCandidates.some(cand => normalizeHeader(key).includes(cand))) {
-      return { value, detectedColumn: key };
+  }
+
+  // Substring matches, respecting candidate priority
+  for (const cand of normalizedCandidates) {
+    for (const [key, value] of Object.entries(row)) {
+      if (normalizeHeader(key).includes(cand)) {
+        if (value !== undefined && String(value).trim() !== "") {
+          return { value, detectedColumn: key };
+        }
+      }
     }
   }
 
@@ -97,7 +135,7 @@ type AmountParseResult = {
 };
 
 function parseMappedAmount(row: Record<string, string>): AmountParseResult {
-  const match = getMappedValue(row, AMT_KEYS);
+  const match = getMappedValue(row, AMOUNT_FIELDS);
 
   if (match.value !== undefined && String(match.value).trim() !== "") {
     const amountStr = String(match.value);
@@ -119,20 +157,31 @@ function parseMappedAmount(row: Record<string, string>): AmountParseResult {
 }
 
 export function normalizeRecord(row: Record<string, string>, filename: string, index: number): ParsedRecord {
-  const referenceMatch = getMappedValue(row, REF_KEYS)
-  const reference = referenceMatch.value ? String(referenceMatch.value).trim() : ''
+  const referenceMatch = getMappedValue(row, TRANSACTION_REFERENCE_FIELDS)
+  let reference = referenceMatch.value ? String(referenceMatch.value).trim() : ''
+  
+  const batchMatch = getMappedValue(row, BATCH_FIELDS)
+  const settlementBatchId = batchMatch.value ? String(batchMatch.value).trim() : ''
+
   const amountResult = parseMappedAmount(row);
   
   const warnings: string[] = [];
   
-  if (!reference) {
+  let valid = true;
+
+  if (!reference && settlementBatchId) {
+    reference = settlementBatchId;
+    warnings.push("Using batch ID as fallback reference; transaction ID missing");
+  } else if (!reference) {
     warnings.push("Reference column not detected or empty");
+    valid = false;
   }
+  
   if (amountResult.amount === null) {
-    warnings.push("Amount column not detected or amount invalid");
+    valid = false;
+    warnings.push("Amount column missing or invalid");
   }
 
-  const valid = !!reference && amountResult.amount !== null;
   const amount = amountResult.amount ?? 0;
 
   const descriptionMatch = getMappedValue(row, DESC_KEYS) || getMappedValue(row, TYPE_KEYS);
@@ -153,6 +202,7 @@ export function normalizeRecord(row: Record<string, string>, filename: string, i
     id: makeId(filename, reference || `ROW-${index}`, amount, index),
     source: filename,
     reference,
+    settlementBatchId,
     description,
     amount,
     currency,

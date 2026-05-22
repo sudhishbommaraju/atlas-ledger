@@ -1,58 +1,65 @@
 'use client'
 
 import { create } from 'zustand'
-import { DisbursableFunds, FileStatus, MatchResult, ParsedRecord, UploadedFile } from '@/lib/types'
-import { runReconciliation, calcDisbursable } from '@/lib/engine'
+import { CanonicalResults, FileStatus, ParsedRecord, UploadedFile, ExcludedSheet } from '@/lib/types'
+import { buildCanonicalResults } from '@/lib/engine'
 
 type ReconState = {
   files: UploadedFile[]
-  matchResults: MatchResult[]
-  disbursable: DisbursableFunds | null
+  results: CanonicalResults | null
+  excludedSheets: ExcludedSheet[]
   hasRun: boolean
 
   addFile: (file: UploadedFile) => void
-  updateFileStatus: (id: string, status: FileStatus, records?: ParsedRecord[], warnings?: string[], error?: string) => void
+  updateFileStatus: (id: string, status: FileStatus, records?: ParsedRecord[], warnings?: string[], error?: string, excludedSheets?: ExcludedSheet[]) => void
   removeFile: (id: string) => void
   runReconciliation: () => void
   reset: () => void
 }
 
-const emptyDisbursable: DisbursableFunds = {
-  grossSettled: 0, fees: 0, refunds: 0, chargebacks: 0, reserves: 0, unresolved: 0, available: 0, currency: 'USD'
-}
-
 export const useReconStore = create<ReconState>((set, get) => ({
   files: [],
-  matchResults: [],
-  disbursable: null,
+  results: null,
+  excludedSheets: [],
   hasRun: false,
 
   addFile: (file) => set((s) => ({ files: [...s.files, file] })),
 
-  updateFileStatus: (id, status, records = [], warnings = [], error) =>
+  updateFileStatus: (id, status, records = [], warnings = [], error, excludedSheets = []) =>
     set((s) => ({
       files: s.files.map((f) =>
         f.id === id
           ? { ...f, status, records, warnings, recordCount: records.length, error }
           : f
       ),
+      excludedSheets: [...s.excludedSheets, ...excludedSheets],
     })),
 
   removeFile: (id) =>
     set((s) => ({
       files: s.files.filter((f) => f.id !== id),
-      matchResults: [],
-      disbursable: null,
+      results: null,
       hasRun: false,
+      // Just a simple hack: if all files removed, reset sheets.
+      excludedSheets: s.files.length === 1 ? [] : s.excludedSheets
     })),
 
   runReconciliation: () => {
-    const { files } = get()
+    const { files, excludedSheets } = get()
     const allRecords = files.flatMap((f) => f.records)
-    const matchResults = runReconciliation(allRecords)
-    const disbursable = allRecords.length > 0 ? calcDisbursable(allRecords, matchResults) : emptyDisbursable
-    set({ matchResults, disbursable, hasRun: true })
+    const parserWarnings = files.flatMap((f) => 
+      f.warnings.map(msg => ({ sourceName: f.name, message: msg }))
+    )
+    
+    const results = buildCanonicalResults(
+      allRecords, 
+      parserWarnings,
+      excludedSheets,
+      `run-${Date.now()}`
+    )
+    
+    set({ results, hasRun: true })
   },
 
-  reset: () => set({ files: [], matchResults: [], disbursable: null, hasRun: false }),
+  reset: () => set({ files: [], results: null, excludedSheets: [], hasRun: false }),
 }))

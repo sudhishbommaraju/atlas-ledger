@@ -54,7 +54,7 @@ function parseMt940(content: string, filename: string): ParseResult {
     return parseTxt(content, filename)
   }
 
-  return { records, warnings }
+  return { records, warnings, excludedSheets: [] }
 }
 
 function parseTxt(content: string, filename: string): ParseResult {
@@ -96,10 +96,11 @@ function parseTxt(content: string, filename: string): ParseResult {
     return {
       records: [],
       warnings: ['TXT file could not be parsed as structured data. Uploaded as document evidence.'],
+      excludedSheets: []
     }
   }
 
-  return { records, warnings }
+  return { records, warnings, excludedSheets: [] }
 }
 
 export function parseMt940OrTxt(content: string, filename: string): ParseResult {

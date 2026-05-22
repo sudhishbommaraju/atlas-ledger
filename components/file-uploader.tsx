@@ -4,7 +4,7 @@ import { useCallback } from 'react'
 import { useDropzone, FileRejection } from 'react-dropzone'
 import { useReconStore } from '@/store/recon-store'
 import { MAX_FILE_SIZE_MB } from '@/lib/parsers/index'
-import { FileStatus, ParsedRecord, UploadedFile } from '@/lib/types'
+import { ExcludedSheet, FileStatus, ParsedRecord, UploadedFile } from '@/lib/types'
 
 function makeId(): string {
   return Math.random().toString(36).slice(2, 10)
@@ -15,7 +15,8 @@ type UpdateFileFn = (
   status: FileStatus,
   records?: ParsedRecord[],
   warnings?: string[],
-  error?: string
+  error?: string,
+  excludedSheets?: ExcludedSheet[]
 ) => void
 
 async function uploadAndParse(file: File, fileId: string, updateFileStatus: UpdateFileFn) {
@@ -29,16 +30,16 @@ async function uploadAndParse(file: File, fileId: string, updateFileStatus: Upda
     const data = await res.json()
 
     if (data.error) {
-      updateFileStatus(fileId, 'failed', [], [], data.error)
+      updateFileStatus(fileId, 'failed', [], [], data.error, data.excludedSheets || [])
     } else if (data.records.length === 0) {
-      updateFileStatus(fileId, 'warning', [], data.warnings || [], data.warnings?.[0] || 'No records parsed')
+      updateFileStatus(fileId, 'warning', [], data.warnings || [], data.warnings?.[0] || 'No records parsed', data.excludedSheets || [])
     } else if (data.warnings?.length > 0) {
-      updateFileStatus(fileId, 'warning', data.records, data.warnings)
+      updateFileStatus(fileId, 'warning', data.records, data.warnings, undefined, data.excludedSheets || [])
     } else {
-      updateFileStatus(fileId, 'parsed', data.records, [])
+      updateFileStatus(fileId, 'parsed', data.records, [], undefined, data.excludedSheets || [])
     }
   } catch {
-    updateFileStatus(fileId, 'failed', [], [], 'Network error: could not reach parse API')
+    updateFileStatus(fileId, 'failed', [], [], 'Network error: could not reach parse API', [])
   }
 }
 
@@ -103,23 +104,16 @@ export default function FileUploader() {
   return (
     <div
       {...getRootProps()}
-      style={{
-        border: `1px dashed ${isDragActive ? 'var(--accent)' : 'var(--border-default)'}`,
-        borderRadius: 6,
-        padding: 24,
-        textAlign: 'center',
-        background: isDragActive ? 'rgba(74, 127, 193, 0.05)' : 'var(--bg-elevated)',
-        cursor: 'pointer',
-        transition: 'all 0.15s',
-        userSelect: 'none',
-      }}
+      className={`cursor-pointer select-none rounded-lg border border-dashed p-4 text-center transition-all duration-150 ${
+        isDragActive ? 'border-green-500/50 bg-green-500/5' : 'border-neutral-700 bg-neutral-900/50 hover:bg-neutral-800/50'
+      }`}
     >
       <input {...getInputProps()} />
-      <div style={{ fontSize: 13, color: isDragActive ? 'var(--accent)' : 'var(--text-secondary)' }}>
-        {isDragActive ? 'Drop files here' : 'Drop files or click to upload'}
+      <div className={`text-sm font-medium ${isDragActive ? 'text-green-400' : 'text-neutral-300'}`}>
+        {isDragActive ? 'Drop files here' : 'Drop files to ingest'}
       </div>
-      <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
-        CSV · XLSX · JSON · TXT · MT940 · PDF · DOCX &nbsp;·&nbsp; up to {MAX_FILE_SIZE_MB}MB each
+      <div className="mt-1 text-xs text-neutral-500 font-mono">
+        CSV, XLSX, MT940 ({MAX_FILE_SIZE_MB}MB max)
       </div>
     </div>
   )

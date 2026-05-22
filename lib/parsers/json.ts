@@ -8,7 +8,7 @@ export function parseJson(content: string, filename: string): ParseResult {
   try {
     parsed = JSON.parse(content)
   } catch {
-    return { records: [], warnings: [], error: 'Invalid JSON: could not parse file.' }
+    return { records: [], warnings: [], excludedSheets: [], error: 'Invalid JSON: could not parse file.' }
   }
 
   let rows: Record<string, unknown>[] = []
@@ -41,5 +41,5 @@ export function parseJson(content: string, filename: string): ParseResult {
     }
   })
 
-  return { records, warnings }
+  return { records, warnings, excludedSheets: [] }
 }

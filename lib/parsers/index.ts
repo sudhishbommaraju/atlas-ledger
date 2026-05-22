@@ -42,12 +42,13 @@ export async function parseFile(buffer: Buffer, filename: string): Promise<Parse
       case '.docx':
         return parseFallback(filename)
       default:
-        return { records: [], warnings: [], error: `No parser available for extension "${ext}".` }
+        return { records: [], warnings: [], excludedSheets: [], error: `No parser available for extension "${ext}".` }
     }
   } catch (err) {
     return {
       records: [],
       warnings: [],
+      excludedSheets: [],
       error: `Parse error: ${(err as Error).message}`,
     }
   }

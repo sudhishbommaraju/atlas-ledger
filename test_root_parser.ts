@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { parseXlsx } from './lib/parsers/xlsx'
-import { runReconciliation, calcDisbursable } from './lib/engine'
+import { buildCanonicalResults } from './lib/engine'
 
 const buffer = fs.readFileSync(path.join('atlas-ledger', 'frontend', 'test_data', 'atlas_backend_test_workbook.xlsx'))
 const result = parseXlsx(buffer, 'atlas_backend_test_workbook.xlsx')
@@ -12,19 +12,18 @@ console.log('Warnings:', result.warnings)
 const sources = new Set(result.records.map(r => r.source))
 console.log('Sources:', Array.from(sources))
 
-const matchResults = runReconciliation(result.records)
-const duplicateCount = matchResults.filter(r => r.status === 'duplicate').length;
-const matchCount = matchResults.filter(r => r.status === 'matched').length;
-const partialCount = matchResults.filter(r => r.status === 'partial').length;
-const unmatchedCount = matchResults.filter(r => r.status === 'unmatched').length;
-const timingDriftCount = matchResults.filter(r => r.status === 'timing_drift').length;
+const parserWarnings = result.warnings.map(w => ({ sourceName: 'atlas_backend_test_workbook.xlsx', message: w }))
+
+const canonical = buildCanonicalResults(result.records, parserWarnings, result.excludedSheets || [], 'test')
 
 console.log(`\nReconciliation Summary:`)
-console.log(`Matches: ${matchCount}`)
-console.log(`Partials: ${partialCount}`)
-console.log(`Timing Drifts: ${timingDriftCount}`)
-console.log(`Duplicates: ${duplicateCount}`)
-console.log(`Unmatched: ${unmatchedCount}`)
+console.log(`Matches: ${canonical.metrics.matched}`)
+console.log(`Partials: ${canonical.metrics.partial}`)
+console.log(`Timing Drifts: ${canonical.metrics.timingDrift}`)
+console.log(`Duplicates: ${canonical.metrics.duplicates}`)
+console.log(`Unmatched: ${canonical.metrics.unmatched}`)
+console.log(`Exceptions: ${canonical.metrics.exceptions}`)
 
-const disbursable = calcDisbursable(result.records, matchResults);
-console.log(`\nDisbursable Funds:`, disbursable)
+console.log(`\nMatch Rate: ${canonical.matchRate.toFixed(2)}%`)
+
+console.log(`\nDisbursable Funds:`, canonical.disbursableBreakdown)

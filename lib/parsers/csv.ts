@@ -29,5 +29,5 @@ export function parseCsv(content: string, filename: string): ParseResult {
     warnings.push('No records could be extracted. Check column names.')
   }
 
-  return { records, warnings }
+  return { records, warnings, excludedSheets: [] }
 }
