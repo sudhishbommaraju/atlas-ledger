@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx'
 import { ParsedRecord, ParseResult } from '../types'
-import { normalizeRecord } from './normalize'
+import { normalizeRecord, AMT_KEYS } from './normalize'
 
 export function parseXlsx(buffer: Buffer, filename: string): ParseResult {
   const warnings: string[] = []
@@ -27,6 +27,19 @@ export function parseXlsx(buffer: Buffer, filename: string): ParseResult {
         defval: '',
         raw: false,
       })
+      
+      if (rows.length === 0) return;
+
+      const detectedHeaders = Object.keys(rows[0] || {}).map(h => h.toLowerCase());
+      
+      const noAmountColumnDetected = !detectedHeaders.some(h => 
+         AMT_KEYS.some(amtKey => h.includes(amtKey))
+      );
+
+      if (detectedHeaders.length < 2 || noAmountColumnDetected) {
+        warnings.push(`Sheet "${sheetName}" marked as metadata only (skipped)`);
+        return;
+      }
 
       rows.forEach((row, i) => {
         const normalized: Record<string, string> = {}
@@ -36,8 +49,8 @@ export function parseXlsx(buffer: Buffer, filename: string): ParseResult {
         try {
           // Pass sheetName instead of filename so the UI groups by sheet correctly!
           records.push(normalizeRecord(normalized, sheetName, i))
-        } catch {
-          warnings.push(`Sheet "${sheetName}" Row ${i + 2}: could not normalize — skipped`)
+        } catch (e: any) {
+          warnings.push(`Sheet "${sheetName}" Row ${i + 2}: could not normalize — ${e.message}`)
         }
       })
     })
