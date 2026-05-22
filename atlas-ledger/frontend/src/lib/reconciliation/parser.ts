@@ -151,10 +151,16 @@ export function parseWorkbook(
     const nonEmptyRows = rows.filter((row) =>
       Object.values(row).some((value) => String(value).trim() !== "")
     );
+    
+    let resolvedSourceName = sheetName;
+    if (workbook.SheetNames.length === 1 && sheetName.toLowerCase().startsWith('sheet')) {
+       // It's likely a CSV or single-sheet file with a generic name. Use filename.
+       resolvedSourceName = sourceFile.split('.').slice(0, -1).join('.') || sourceFile;
+    }
 
     return {
-      sheetName,
-      sourceType: inferSourceType(sheetName),
+      sheetName: resolvedSourceName,
+      sourceType: inferSourceType(resolvedSourceName),
       rows: nonEmptyRows,
       recordCount: nonEmptyRows.length,
       warnings: [],

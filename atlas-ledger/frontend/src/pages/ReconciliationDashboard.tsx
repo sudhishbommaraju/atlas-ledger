@@ -90,7 +90,7 @@ export default function ReconciliationDashboard() {
     for (const file of fileArray) {
       const extension = file.name.split(".").pop()?.toLowerCase();
 
-      if (extension === "xlsx" || extension === "xls") {
+      if (extension === "xlsx" || extension === "xls" || extension === "csv") {
         const buffer = await file.arrayBuffer();
         const parsed = parseWorkbook(buffer, file.name);
 
@@ -210,7 +210,7 @@ export default function ReconciliationDashboard() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".xlsx,.xls"
+              accept=".xlsx,.xls,.csv"
               multiple
               className="hidden"
               onChange={(e) => {
