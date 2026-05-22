@@ -42,7 +42,7 @@ function Field({ label, value }: { label: string; value?: string | number }) {
 export default function ExceptionDrawer({ result, onClose }: Props) {
   if (!result) return null
 
-  const { record, matchedRecord, status, confidence, issue, recommendedAction } = result
+  const { record, matchedRecord, status, confidence, issue, matchReason, recommendedAction } = result
 
   return (
     <>
@@ -136,6 +136,15 @@ export default function ExceptionDrawer({ result, onClose }: Props) {
             <Field label="Amount" value={`${matchedRecord.amount.toFixed(2)} ${matchedRecord.currency}`} />
             <Field label="Date" value={matchedRecord.date} />
             <Field label="Type" value={matchedRecord.type} />
+          </div>
+        )}
+
+        {matchReason && (
+          <div style={{ borderBottom: '1px solid var(--border-subtle)', marginBottom: 16, paddingBottom: 16 }}>
+            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
+              Match Reason
+            </div>
+            <div style={{ fontSize: 12, color: '#86efac' }}>{matchReason}</div>
           </div>
         )}
 

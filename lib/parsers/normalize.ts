@@ -67,31 +67,90 @@ function makeId(source: string, reference: string, amount: number, index: number
   return Math.abs(hash).toString(16).padStart(8, '0')
 }
 
-export function normalizeRecord(row: Record<string, string>, filename: string, index: number): ParsedRecord {
-  const reference = pick(row, REF_KEYS)
-  const amountStr = pick(row, AMT_KEYS)
-  
-  if (!reference) {
-    throw new Error(`Reference column not detected`);
-  }
-  if (!amountStr) {
-    throw new Error(`Amount column not detected`);
-  }
-  
-  const amount = parseFloat(amountStr.replace(/[^0-9.\-]/g, ''))
-  
-  if (isNaN(amount)) {
-    throw new Error(`Amount could not be parsed: ${amountStr}`);
+function normalizeHeader(header: string): string {
+  return header.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+}
+
+function getMappedValue(
+  row: Record<string, string>,
+  candidates: string[]
+): { value: unknown; detectedColumn?: string } {
+  const normalizedCandidates = candidates.map(normalizeHeader);
+
+  for (const [key, value] of Object.entries(row)) {
+    if (normalizedCandidates.includes(normalizeHeader(key))) {
+      return { value, detectedColumn: key };
+    }
+    // Fallback partial match if exact fails
+    if (normalizedCandidates.some(cand => normalizeHeader(key).includes(cand))) {
+      return { value, detectedColumn: key };
+    }
   }
 
-  const description = pick(row, DESC_KEYS) || pick(row, TYPE_KEYS) || ''
-  const date = pick(row, DATE_KEYS) || ''
-  const currency = pick(row, CCY_KEYS) || 'USD'
-  const rawType = pick(row, TYPE_KEYS)
+  return { value: undefined };
+}
+
+type AmountParseResult = {
+  amount: number | null;
+  detectedColumn?: string;
+  explicitZero: boolean;
+};
+
+function parseMappedAmount(row: Record<string, string>): AmountParseResult {
+  const match = getMappedValue(row, AMT_KEYS);
+
+  if (match.value !== undefined && String(match.value).trim() !== "") {
+    const amountStr = String(match.value);
+    const amount = parseFloat(amountStr.replace(/[^0-9.\-]/g, ''));
+
+    if (!isNaN(amount)) {
+      return {
+        amount,
+        detectedColumn: match.detectedColumn,
+        explicitZero: amount === 0,
+      };
+    }
+  }
+
+  return {
+    amount: null,
+    explicitZero: false,
+  };
+}
+
+export function normalizeRecord(row: Record<string, string>, filename: string, index: number): ParsedRecord {
+  const referenceMatch = getMappedValue(row, REF_KEYS)
+  const reference = referenceMatch.value ? String(referenceMatch.value).trim() : ''
+  const amountResult = parseMappedAmount(row);
+  
+  const warnings: string[] = [];
+  
+  if (!reference) {
+    warnings.push("Reference column not detected or empty");
+  }
+  if (amountResult.amount === null) {
+    warnings.push("Amount column not detected or amount invalid");
+  }
+
+  const valid = !!reference && amountResult.amount !== null;
+  const amount = amountResult.amount ?? 0;
+
+  const descriptionMatch = getMappedValue(row, DESC_KEYS) || getMappedValue(row, TYPE_KEYS);
+  const description = descriptionMatch.value ? String(descriptionMatch.value) : '';
+
+  const dateMatch = getMappedValue(row, DATE_KEYS);
+  const date = dateMatch.value ? String(dateMatch.value) : '';
+
+  const currencyMatch = getMappedValue(row, CCY_KEYS);
+  const currency = currencyMatch.value ? String(currencyMatch.value) : 'USD';
+
+  const rawTypeMatch = getMappedValue(row, TYPE_KEYS);
+  const rawType = rawTypeMatch.value ? String(rawTypeMatch.value) : '';
+
   const type = detectType(row, rawType, amount)
 
   return {
-    id: makeId(filename, reference, amount, index),
+    id: makeId(filename, reference || `ROW-${index}`, amount, index),
     source: filename,
     reference,
     description,
@@ -100,5 +159,7 @@ export function normalizeRecord(row: Record<string, string>, filename: string, i
     date,
     type,
     raw: row,
+    valid,
+    normalizationWarnings: warnings,
   }
 }

@@ -65,7 +65,7 @@ export default function ExceptionsPage() {
       )}
 
       {hasRun && exceptions.length > 0 && (
-        <ReconTable results={exceptions} />
+        <ReconTable results={exceptions} parserWarnings={[]} />
       )}
     </div>
   )

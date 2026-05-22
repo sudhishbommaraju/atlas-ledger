@@ -17,6 +17,8 @@ export type ParsedRecord = {
   date: string
   type: RecordType
   raw: Record<string, string>
+  valid: boolean
+  normalizationWarnings: string[]
 }
 
 export type MatchStatus =
@@ -26,6 +28,7 @@ export type MatchStatus =
   | 'duplicate'
   | 'timing_drift'
   | 'eligibility_hold'
+  | 'invalid'
 
 export type MatchResult = {
   record: ParsedRecord
@@ -33,6 +36,7 @@ export type MatchResult = {
   confidence: number
   matchedRecord?: ParsedRecord
   issue?: string
+  matchReason?: string
   recommendedAction?: string
 }
 
@@ -66,3 +70,17 @@ export type ParseResult = {
   warnings: string[]
   error?: string
 }
+
+export type ParserWarning = {
+  sourceName: string;
+  rowNumber?: number;
+  message: string;
+};
+
+export type ReconciliationException = {
+  reference: string;
+  sourceName: string;
+  type: "unmatched" | "duplicate" | "timing_drift" | "reserve_hold" | "invalid";
+  severity: "low" | "medium" | "high";
+  message: string;
+};

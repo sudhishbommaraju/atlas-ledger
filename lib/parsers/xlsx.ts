@@ -2,6 +2,20 @@ import * as XLSX from 'xlsx'
 import { ParsedRecord, ParseResult } from '../types'
 import { normalizeRecord, AMT_KEYS } from './normalize'
 
+function isMetadataSheet(sheetName: string) {
+  const value = sheetName.toLowerCase().trim();
+  return [
+    "validation summary",
+    "expected output",
+    "readme",
+    "summary",
+    "instructions",
+    "notes",
+    "qa",
+    "test results",
+  ].some((name) => value.includes(name));
+}
+
 export function parseXlsx(buffer: Buffer, filename: string): ParseResult {
   const warnings: string[] = []
   const records: ParsedRecord[] = []
@@ -13,15 +27,17 @@ export function parseXlsx(buffer: Buffer, filename: string): ParseResult {
       return { records: [], warnings: ['Workbook contains no sheets.'] }
     }
     
-    console.log("WORKBOOK SHEETS:", workbook.SheetNames);
-    console.log("PARSED SHEETS COUNT:", workbook.SheetNames.length);
-    
     // Step 5 - FORCE HARD FAILURE
     if (workbook.SheetNames.length <= 1 && filename === 'atlas_backend_test_workbook.xlsx') {
       throw new Error("Workbook parser failed: only one sheet parsed");
     }
 
     workbook.SheetNames.forEach(sheetName => {
+      if (isMetadataSheet(sheetName)) {
+        warnings.push(`Sheet "${sheetName}" marked as metadata only (skipped)`);
+        return;
+      }
+
       const sheet = workbook.Sheets[sheetName]
       const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
         defval: '',
@@ -30,28 +46,18 @@ export function parseXlsx(buffer: Buffer, filename: string): ParseResult {
       
       if (rows.length === 0) return;
 
-      const detectedHeaders = Object.keys(rows[0] || {}).map(h => h.toLowerCase());
-      
-      const noAmountColumnDetected = !detectedHeaders.some(h => 
-         AMT_KEYS.some(amtKey => h.includes(amtKey))
-      );
-
-      if (detectedHeaders.length < 2 || noAmountColumnDetected) {
-        warnings.push(`Sheet "${sheetName}" marked as metadata only (skipped)`);
-        return;
-      }
-
       rows.forEach((row, i) => {
         const normalized: Record<string, string> = {}
         Object.entries(row).forEach(([k, v]) => {
           normalized[k.trim().toLowerCase()] = String(v ?? '')
         })
-        try {
-          // Pass sheetName instead of filename so the UI groups by sheet correctly!
-          records.push(normalizeRecord(normalized, sheetName, i))
-        } catch (e: any) {
-          warnings.push(`Sheet "${sheetName}" Row ${i + 2}: could not normalize — ${e.message}`)
+        
+        // Pass sheetName instead of filename so the UI groups by sheet correctly!
+        const record = normalizeRecord(normalized, sheetName, i);
+        if (!record.valid) {
+          record.normalizationWarnings.forEach(w => warnings.push(`Sheet "${sheetName}" Row ${i + 2}: ${w}`));
         }
+        records.push(record);
       })
     })
 

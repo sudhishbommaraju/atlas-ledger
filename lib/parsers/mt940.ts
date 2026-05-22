@@ -43,6 +43,8 @@ function parseMt940(content: string, filename: string): ParseResult {
       date: dateStr,
       type: amount > 0 ? 'settlement' : 'fee',
       raw: { raw_line: m[0], description },
+      valid: true,
+      normalizationWarnings: [],
     })
     idx++
   }
@@ -82,6 +84,8 @@ function parseTxt(content: string, filename: string): ParseResult {
         date: dateRaw,
         type: amount >= 0 ? 'settlement' : 'fee',
         raw: { raw_line: trimmed },
+        valid: true,
+        normalizationWarnings: [],
       })
       matched++
     }
