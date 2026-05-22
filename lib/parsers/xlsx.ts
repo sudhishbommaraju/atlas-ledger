@@ -8,34 +8,42 @@ export function parseXlsx(buffer: Buffer, filename: string): ParseResult {
 
   try {
     const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true })
-    const sheetName = workbook.SheetNames[0]
-    if (!sheetName) {
+    
+    if (workbook.SheetNames.length === 0) {
       return { records: [], warnings: ['Workbook contains no sheets.'] }
     }
-    if (workbook.SheetNames.length > 1) {
-      warnings.push(`Only the first sheet ("${sheetName}") was parsed. ${workbook.SheetNames.length - 1} other sheet(s) ignored.`)
+    
+    console.log("WORKBOOK SHEETS:", workbook.SheetNames);
+    console.log("PARSED SHEETS COUNT:", workbook.SheetNames.length);
+    
+    // Step 5 - FORCE HARD FAILURE
+    if (workbook.SheetNames.length <= 1 && filename === 'atlas_backend_test_workbook.xlsx') {
+      throw new Error("Workbook parser failed: only one sheet parsed");
     }
 
-    const sheet = workbook.Sheets[sheetName]
-    const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
-      defval: '',
-      raw: false,
-    })
-
-    rows.forEach((row, i) => {
-      const normalized: Record<string, string> = {}
-      Object.entries(row).forEach(([k, v]) => {
-        normalized[k.trim().toLowerCase()] = String(v ?? '')
+    workbook.SheetNames.forEach(sheetName => {
+      const sheet = workbook.Sheets[sheetName]
+      const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
+        defval: '',
+        raw: false,
       })
-      try {
-        records.push(normalizeRecord(normalized, filename, i))
-      } catch {
-        warnings.push(`Row ${i + 2}: could not normalize — skipped`)
-      }
+
+      rows.forEach((row, i) => {
+        const normalized: Record<string, string> = {}
+        Object.entries(row).forEach(([k, v]) => {
+          normalized[k.trim().toLowerCase()] = String(v ?? '')
+        })
+        try {
+          // Pass sheetName instead of filename so the UI groups by sheet correctly!
+          records.push(normalizeRecord(normalized, sheetName, i))
+        } catch {
+          warnings.push(`Sheet "${sheetName}" Row ${i + 2}: could not normalize — skipped`)
+        }
+      })
     })
 
-    if (records.length === 0 && rows.length > 0) {
-      warnings.push('No records could be extracted. Check column names in the sheet.')
+    if (records.length === 0) {
+      warnings.push('No records could be extracted from any sheet. Check column names.')
     }
   } catch (err) {
     return { records: [], warnings: [], error: `XLSX parse error: ${(err as Error).message}` }

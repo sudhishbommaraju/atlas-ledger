@@ -17,7 +17,13 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
+    
+    console.log("UPLOAD HANDLER HIT");
+    
     const result = await parseFile(buffer, filename)
+    
+    console.log("PARSER HIT");
+    console.log("TOTAL TRANSACTIONS:", result.records.length);
 
     return NextResponse.json(result)
   } catch (err) {
