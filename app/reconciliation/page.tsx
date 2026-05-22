@@ -17,7 +17,7 @@ export default function ReconciliationPage() {
   const { files, results, excludedSheets, hasRun, runReconciliation } = useReconStore()
 
   const readyFiles = files.filter((f) => f.status === 'parsed' || f.status === 'warning')
-  const canRun = readyFiles.length > 0
+  const canRun = readyFiles.length >= 2 && files.some(f => f.recordCount > 0)
 
   return (
     <div className="flex h-full flex-col gap-6 p-8 text-neutral-200">
@@ -76,20 +76,49 @@ export default function ReconciliationPage() {
             {files.length === 0 ? (
               <div className="text-sm text-neutral-600">No sources ingested.</div>
             ) : (
-              <div className="flex flex-col gap-3">
-                {files.map(f => (
-                  <div key={f.id} className="flex flex-col gap-1 border-b border-neutral-800/50 pb-2 last:border-0">
-                    <div className="flex justify-between text-sm text-neutral-300">
-                      <span className="truncate">{f.name}</span>
-                      <span className="font-mono text-neutral-500">{f.recordCount} rows</span>
-                    </div>
-                    {f.warnings.length > 0 && (
-                      <div className="text-xs text-amber-500/80">{f.warnings.length} parser warnings</div>
+              <div className="flex flex-col gap-4">
+                {Object.entries(
+                  files.reduce((acc, f) => {
+                    const key = f.archiveName || 'root'
+                    if (!acc[key]) acc[key] = []
+                    acc[key].push(f)
+                    return acc
+                  }, {} as Record<string, typeof files>)
+                ).map(([archiveName, groupedFiles]) => (
+                  <div key={archiveName} className="flex flex-col gap-2 border-b border-neutral-800/50 pb-3 last:border-0">
+                    {archiveName !== 'root' && (
+                      <div className="flex items-center gap-2 text-sm font-medium text-neutral-300">
+                        <svg className="h-4 w-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                        </svg>
+                        <span className="truncate">{archiveName}</span>
+                      </div>
                     )}
+                    <div className={archiveName !== 'root' ? 'ml-4 flex flex-col gap-2 border-l border-neutral-800 pl-3' : 'flex flex-col gap-2'}>
+                      {groupedFiles.map(f => (
+                        <div key={f.id} className="flex flex-col gap-1">
+                          <div className="flex justify-between text-sm text-neutral-300">
+                            <span className="truncate">{f.name}</span>
+                            <span className="font-mono text-neutral-500">{f.recordCount} rows</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <div className="text-xs text-neutral-500">
+                              {f.sourceType ? `Type: ${f.sourceType}` : 'Type: unknown'}
+                            </div>
+                            {f.warnings.length > 0 && (
+                              <div className="text-xs text-amber-500/80">{f.warnings.length} parser warnings</div>
+                            )}
+                            {f.status === 'failed' && (
+                              <div className="text-xs text-red-500/80">Failed to parse</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
                 {excludedSheets.length > 0 && (
-                  <div className="mt-2 text-xs text-neutral-500">
+                  <div className="mt-1 text-xs text-neutral-500">
                     Excluded {excludedSheets.length} metadata sheets
                   </div>
                 )}

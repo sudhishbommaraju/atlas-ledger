@@ -3,7 +3,7 @@
 import { useCallback } from 'react'
 import { useDropzone, FileRejection } from 'react-dropzone'
 import { useReconStore } from '@/store/recon-store'
-import { MAX_FILE_SIZE_MB } from '@/lib/parsers/index'
+import { MAX_FILE_SIZE_MB } from '@/lib/constants'
 import { ExcludedSheet, FileStatus, ParsedRecord, UploadedFile } from '@/lib/types'
 
 function makeId(): string {
@@ -19,7 +19,14 @@ type UpdateFileFn = (
   excludedSheets?: ExcludedSheet[]
 ) => void
 
-async function uploadAndParse(file: File, fileId: string, updateFileStatus: UpdateFileFn) {
+async function uploadAndParse(
+  file: File, 
+  fileId: string, 
+  updateFileStatus: UpdateFileFn,
+  removeFile: (id: string) => void,
+  addFile: (f: UploadedFile) => void,
+  addExcludedSheets: (sheets: ExcludedSheet[]) => void
+) {
   updateFileStatus(fileId, 'parsing')
 
   try {
@@ -30,21 +37,43 @@ async function uploadAndParse(file: File, fileId: string, updateFileStatus: Upda
     const data = await res.json()
 
     if (data.error) {
-      updateFileStatus(fileId, 'failed', [], [], data.error, data.excludedSheets || [])
-    } else if (data.records.length === 0) {
-      updateFileStatus(fileId, 'warning', [], data.warnings || [], data.warnings?.[0] || 'No records parsed', data.excludedSheets || [])
-    } else if (data.warnings?.length > 0) {
-      updateFileStatus(fileId, 'warning', data.records, data.warnings, undefined, data.excludedSheets || [])
-    } else {
-      updateFileStatus(fileId, 'parsed', data.records, [], undefined, data.excludedSheets || [])
+      updateFileStatus(fileId, 'failed', [], [], data.error)
+    } else if (data.files) {
+      removeFile(fileId) // Remove the pending placeholder
+      
+      data.files.forEach((extractedFile: any) => {
+        const newId = makeId()
+        let status: FileStatus = 'parsed'
+        if (extractedFile.error) status = 'failed'
+        else if (extractedFile.records?.length === 0) status = 'warning'
+        else if (extractedFile.warnings?.length > 0) status = 'warning'
+
+        addFile({
+          id: newId,
+          name: extractedFile.filename,
+          archiveName: extractedFile.archiveName,
+          extension: extractedFile.filename.split('.').pop() ? `.${extractedFile.filename.split('.').pop()}` : '',
+          size: extractedFile.sizeBytes || 0,
+          status,
+          recordCount: extractedFile.records?.length || 0,
+          records: extractedFile.records || [],
+          warnings: extractedFile.warnings || [],
+          sourceType: extractedFile.sourceType,
+          error: extractedFile.error || (extractedFile.records?.length === 0 ? 'No records parsed' : undefined),
+        })
+
+        if (extractedFile.excludedSheets?.length > 0) {
+          addExcludedSheets(extractedFile.excludedSheets)
+        }
+      })
     }
   } catch {
-    updateFileStatus(fileId, 'failed', [], [], 'Network error: could not reach parse API', [])
+    updateFileStatus(fileId, 'failed', [], [], 'Network error: could not reach parse API')
   }
 }
 
 export default function FileUploader() {
-  const { addFile, updateFileStatus } = useReconStore()
+  const { addFile, updateFileStatus, removeFile, addExcludedSheets } = useReconStore()
 
   const onDrop = useCallback(
     (accepted: File[], rejected: FileRejection[]) => {
@@ -80,10 +109,10 @@ export default function FileUploader() {
           warnings: [],
         }
         addFile(uploadedFile)
-        uploadAndParse(file, id, updateFileStatus)
+        uploadAndParse(file, id, updateFileStatus, removeFile, addFile, addExcludedSheets)
       })
     },
-    [addFile, updateFileStatus]
+    [addFile, updateFileStatus, removeFile, addExcludedSheets]
   )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -95,6 +124,8 @@ export default function FileUploader() {
       'text/plain': ['.txt', '.mt940'],
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/zip': ['.zip'],
+      'application/x-zip-compressed': ['.zip']
     },
     maxSize: MAX_FILE_SIZE_MB * 1024 * 1024,
     multiple: true,
@@ -113,7 +144,7 @@ export default function FileUploader() {
         {isDragActive ? 'Drop files here' : 'Drop files to ingest'}
       </div>
       <div className="mt-1 text-xs text-neutral-500 font-mono">
-        CSV, XLSX, MT940 ({MAX_FILE_SIZE_MB}MB max)
+        CSV, XLSX, MT940, ZIP ({MAX_FILE_SIZE_MB}MB max)
       </div>
     </div>
   )

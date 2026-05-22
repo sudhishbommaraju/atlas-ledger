@@ -1,3 +1,5 @@
+export type SourceType = 'ledger' | 'bank' | 'psp' | 'erp' | 'unknown'
+
 export type RecordType =
   | 'settlement'
   | 'fee'
@@ -22,6 +24,7 @@ export type OperationalRisk = 'low' | 'medium' | 'high'
 export type ParsedRecord = {
   id: string
   source: string
+  sourceType?: SourceType
   reference: string
   settlementBatchId?: string
   description: string
@@ -118,6 +121,8 @@ export type UploadedFile = {
   records: ParsedRecord[]
   warnings: string[]
   error?: string
+  archiveName?: string
+  sourceType?: SourceType
 }
 
 export type ParseResult = {
@@ -125,5 +130,12 @@ export type ParseResult = {
   warnings: string[]
   excludedSheets: ExcludedSheet[]
   error?: string
+}
+
+export type ExtractedFileResult = ParseResult & {
+  filename: string
+  archiveName?: string
+  sizeBytes: number
+  sourceType: SourceType
 }
 

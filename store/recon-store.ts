@@ -13,6 +13,8 @@ type ReconState = {
   addFile: (file: UploadedFile) => void
   updateFileStatus: (id: string, status: FileStatus, records?: ParsedRecord[], warnings?: string[], error?: string, excludedSheets?: ExcludedSheet[]) => void
   removeFile: (id: string) => void
+  addExcludedSheets: (sheets: ExcludedSheet[]) => void
+  canRunReconciliation: () => boolean
   runReconciliation: () => void
   reset: () => void
 }
@@ -40,9 +42,19 @@ export const useReconStore = create<ReconState>((set, get) => ({
       files: s.files.filter((f) => f.id !== id),
       results: null,
       hasRun: false,
-      // Just a simple hack: if all files removed, reset sheets.
       excludedSheets: s.files.length === 1 ? [] : s.excludedSheets
     })),
+
+  addExcludedSheets: (sheets) =>
+    set((s) => ({
+      excludedSheets: [...s.excludedSheets, ...sheets]
+    })),
+
+  canRunReconciliation: () => {
+    const { files } = get()
+    const readyFiles = files.filter(f => f.status === 'parsed' || f.status === 'warning')
+    return readyFiles.length >= 2 && files.some(f => f.recordCount > 0)
+  },
 
   runReconciliation: () => {
     const { files, excludedSheets } = get()
