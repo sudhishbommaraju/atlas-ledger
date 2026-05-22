@@ -167,12 +167,14 @@ export default function ReconciliationPage() {
         </div>
 
         <div className="flex flex-col gap-6 overflow-hidden">
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-8">
             <MetricCard label="Match Rate" value={results ? results.matchRate.toFixed(1) + '%' : '—'} tone={results ? "green" : "neutral"} />
             <MetricCard label="Matched" value={results ? results.metrics.matched : '—'} tone="neutral" />
             <MetricCard label="Partial" value={results ? results.metrics.partial : '—'} tone="neutral" />
             <MetricCard label="Exceptions" value={results ? results.metrics.exceptions : '—'} tone={results && results.metrics.exceptions > 0 ? "red" : "neutral"} />
             <MetricCard label="Duplicate" value={results ? results.metrics.duplicates : '—'} tone={results && results.metrics.duplicates > 0 ? "amber" : "neutral"} />
+            <MetricCard label="Ignored" value={results ? results.metrics.ignored : '—'} tone="neutral" />
+            <MetricCard label="Validation" value={results ? results.metrics.validationAssets : '—'} tone="neutral" />
             <MetricCard label="Disbursable" value={results ? fmt(results.disbursableBreakdown.payoutable, 'USD') : '—'} tone={results ? "green" : "neutral"} />
           </div>
 

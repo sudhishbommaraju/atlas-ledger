@@ -16,6 +16,7 @@ const STATUS_COLORS: Record<MatchStatus, string> = {
   reserve_hold: 'bg-red-500/10 text-red-500 ring-red-500/20',
   eligibility_hold: 'bg-red-500/10 text-red-500 ring-red-500/20',
   invalid: 'bg-neutral-500/10 text-neutral-500 ring-neutral-500/20',
+  ignored: 'bg-neutral-500/10 text-neutral-500 ring-neutral-500/20',
 }
 
 const STATUS_LABELS: Record<MatchStatus, string> = {
@@ -27,6 +28,7 @@ const STATUS_LABELS: Record<MatchStatus, string> = {
   reserve_hold: 'Reserve Hold',
   eligibility_hold: 'Eligibility Hold',
   invalid: 'Invalid',
+  ignored: 'Ignored',
 }
 
 function fmtMoney(amt: number, ccy: string) {
@@ -74,9 +76,9 @@ function ClusterRow({ cluster, onClick }: { cluster: ReconciliationCluster; onCl
             <div key={txn.id + idx} className="flex justify-between items-center py-1 border-b border-neutral-800/50 last:border-0">
               <div className="flex flex-col">
                 <span className="text-neutral-300">{txn.sourceFile}</span>
-                <span className="text-xs text-neutral-500">{txn.type} · {txn.date}</span>
+                <span className="text-xs text-neutral-500">{txn.type} · {txn.normalizedDate || txn.transactionDate}</span>
               </div>
-              <span className="font-mono text-neutral-400">{fmtMoney(txn.amount, txn.currency)}</span>
+              <span className="font-mono text-neutral-400">{fmtMoney(txn.amountOriginal || 0, txn.currency)}</span>
             </div>
           ))}
           {cluster.matchReason && <div className="mt-2 text-xs text-green-400">Match Reason: {cluster.matchReason}</div>}

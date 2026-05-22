@@ -1,4 +1,4 @@
-export type SourceType = 'ledger' | 'bank' | 'psp' | 'erp' | 'unknown'
+export type SourceType = 'ledger' | 'bank' | 'psp' | 'erp' | 'validation' | 'unknown'
 
 export type RecordType =
   | 'settlement'
@@ -18,6 +18,7 @@ export type MatchStatus =
   | 'reserve_hold'
   | 'eligibility_hold'
   | 'invalid'
+  | 'ignored'
 
 export type OperationalRisk = 'low' | 'medium' | 'high'
 
@@ -51,16 +52,43 @@ export type ParserWarning = {
 export type CanonicalTransaction = {
   id: string
   sourceFile: string
+  sourceType: SourceType
   sourceSheet: string
   sourceRowNumber: number
+  originalReference: string
   normalizedReference: string
-  settlementBatchId?: string
-  amount: number
+  transactionDate: string
+  normalizedDate: string
+  amountOriginal: number
+  amountSigned: number
+  amountAbs: number
   currency: string
-  date: string
+  payee: string
+  normalizedPayee: string
+  description: string
+  normalizedDescription: string
+  settlementBatchId?: string
   type: RecordType
   rawRow: Record<string, string>
   normalizationWarnings: string[]
+}
+
+export type ScoreBreakdown = {
+  total: number
+  reference: number
+  amount: number
+  date: number
+  payee: number
+  semantics: number
+  batch: number
+}
+
+export type CandidateScore = {
+  candidateId: string
+  score: number
+  breakdown: ScoreBreakdown
+  failedDimensions: string[]
+  candidateRow: CanonicalTransaction
 }
 
 export type ReconciliationCluster = {
@@ -76,6 +104,8 @@ export type ReconciliationCluster = {
   payoutImpact: number
   matchReason: string
   issues: string[]
+  topCandidates?: CandidateScore[]
+  failedRules?: string[]
 }
 
 export type DisbursableBreakdown = {
@@ -105,6 +135,8 @@ export type CanonicalResults = {
     duplicates: number
     reserveHolds: number
     exceptions: number
+    ignored: number
+    validationAssets: number
   }
 }
 
