@@ -26,11 +26,17 @@ const ACTIONS: Record<MatchStatus, string> = {
 }
 
 export function runReconciliation(allRecords: ParsedRecord[]): MatchResult[] {
-  if (allRecords.length === 0) return []
+  // Exclude metadata sheets
+  const records = allRecords.filter(r => 
+    !r.source.toLowerCase().includes('expected output') && 
+    !r.source.toLowerCase().includes('validation summary')
+  );
+
+  if (records.length === 0) return []
 
   // Group by reference
   const byRef = new Map<string, ParsedRecord[]>()
-  for (const r of allRecords) {
+  for (const r of records) {
     const key = r.reference.trim().toLowerCase()
     if (!byRef.has(key)) byRef.set(key, [])
     byRef.get(key)!.push(r)
@@ -39,104 +45,130 @@ export function runReconciliation(allRecords: ParsedRecord[]): MatchResult[] {
   const results: MatchResult[] = []
 
   for (const [, group] of byRef) {
-    const settlements = group.filter((r) => r.type === 'settlement' || (r.type === 'unknown' && r.amount > 0))
+    // 1. Check for True Duplicates (same reference, same source)
+    const bySource = new Map<string, ParsedRecord[]>()
+    for (const r of group) {
+      const sourceKey = r.source.toLowerCase()
+      if (!bySource.has(sourceKey)) bySource.set(sourceKey, [])
+      bySource.get(sourceKey)!.push(r)
+    }
+
+    let hasDuplicates = false;
+    for (const [source, sourceRecords] of bySource) {
+      if (sourceRecords.length > 1) {
+        hasDuplicates = true;
+        for (const r of sourceRecords) {
+          console.log("DUPLICATE:", r.reference, r.source);
+          results.push({
+            record: r,
+            status: 'duplicate',
+            confidence: 60,
+            issue: ISSUE_MESSAGES.duplicate,
+            recommendedAction: ACTIONS.duplicate,
+          })
+        }
+      }
+    }
+
+    if (hasDuplicates) continue; // Skip reconciliation for this reference group if it contains raw duplicates
+
+    // 2. Perform cross-source reconciliation
+    // A standard transaction usually has a primary ledger record and a PSP/Bank record.
+    // To simplify, let's designate the first settlement record as primary, and find a cross-source match.
+    const settlements = group.filter((r) => r.type === 'settlement' || (r.type === 'unknown' && r.amount > 0) || r.source.toLowerCase().includes('ledger'))
     const nonSettlements = group.filter((r) => !settlements.includes(r))
+    
+    // In many cases, we might have multiple settlements from DIFFERENT sources (e.g. Ledger, Stripe, Bank).
+    // The previous logic failed because it treated them as duplicates.
+    // Now we want to match them.
+    
+    // If there is only 1 record total across all sources, it is unmatched.
+    if (group.length === 1) {
+       results.push({
+         record: group[0],
+         status: 'unmatched',
+         confidence: 0,
+         issue: ISSUE_MESSAGES.unmatched,
+         recommendedAction: ACTIONS.unmatched,
+       })
+       continue;
+    }
+
+    // We have >= 2 records from DIFFERENT sources. They are candidates for matching.
+    // Let's use the first as primary, and the others as matches.
+    // In a real robust engine we'd do a multi-way match, but here we can just pair them up.
+    // We'll treat the first record (preferring ledger if exists) as the primary.
+    const sortedGroup = [...group].sort((a, b) => a.source.toLowerCase().includes('ledger') ? -1 : 1);
+    const primary = sortedGroup[0];
+    const matchCandidates = sortedGroup.slice(1);
+    
+    // Check eligibility holds from non-settlements
     const hasFee = nonSettlements.some((r) => r.type === 'fee')
     const hasRefund = nonSettlements.some((r) => r.type === 'refund')
     const hasChargeback = nonSettlements.some((r) => r.type === 'chargeback')
     const hasReserve = nonSettlements.some((r) => r.type === 'reserve')
 
-    if (settlements.length === 0) {
-      // Non-settlement records without a settlement counterpart
-      for (const r of nonSettlements) {
-        results.push({
-          record: r,
-          status: 'unmatched',
-          confidence: 0,
-          issue: ISSUE_MESSAGES.unmatched,
-          recommendedAction: ACTIONS.unmatched,
-        })
-      }
-      continue
-    }
-
-    // Detect duplicates within the settlement group
-    if (settlements.length > 1) {
-      for (const r of settlements) {
-        results.push({
-          record: r,
-          status: 'duplicate',
-          confidence: 60,
-          issue: ISSUE_MESSAGES.duplicate,
-          recommendedAction: ACTIONS.duplicate,
-        })
-      }
-      continue
-    }
-
-    const primary = settlements[0]
-    const match = nonSettlements.find((r) => r.type !== 'unknown')
-
-    // Eligibility hold
     if (hasChargeback || (hasRefund && hasReserve)) {
       results.push({
         record: primary,
         status: 'eligibility_hold',
         confidence: 50,
-        matchedRecord: match,
+        matchedRecord: matchCandidates[0],
         issue: ISSUE_MESSAGES.eligibility_hold,
         recommendedAction: ACTIONS.eligibility_hold,
       })
       continue
     }
 
-    if (match) {
-      const amtDiff = Math.abs(primary.amount - Math.abs(match.amount))
+    // Compare Primary against the closest match
+    let bestMatch = matchCandidates[0];
+    let bestStatus: MatchStatus = 'unmatched';
+    let bestConfidence = 0;
+    let bestIssue = '';
+
+    for (const match of matchCandidates) {
+      const amtDiff = Math.abs(Math.abs(primary.amount) - Math.abs(match.amount))
       const pctDiff = primary.amount !== 0 ? amtDiff / Math.abs(primary.amount) : 0
       const drift = daysBetween(primary.date, match.date)
 
-      if (drift > 3) {
-        results.push({
-          record: primary,
-          status: 'timing_drift',
-          confidence: 70,
-          matchedRecord: match,
-          issue: ISSUE_MESSAGES.timing_drift,
-          recommendedAction: ACTIONS.timing_drift,
-        })
-        continue
+      let status: MatchStatus = 'unmatched';
+      let confidence = 0;
+      let issue = '';
+
+      if (amtDiff < 0.02) {
+        status = drift > 3 ? 'timing_drift' : 'matched';
+        confidence = drift > 3 ? 70 : 99;
+        issue = drift > 3 ? ISSUE_MESSAGES.timing_drift : '';
+      } else if (pctDiff <= 0.10 && (hasFee || hasRefund || hasReserve || match.type === 'unknown' || match.type === 'settlement')) {
+        status = 'partial';
+        confidence = 95;
+        issue = ISSUE_MESSAGES.partial;
+      } else {
+        status = 'partial';
+        confidence = 60;
+        issue = `Amount discrepancy of ${amtDiff.toFixed(2)} (${(pctDiff * 100).toFixed(1)}%)`;
       }
 
-      if (amtDiff < 0.02 || (pctDiff <= 0.10 && (hasFee || hasRefund || hasReserve))) {
-        results.push({
-          record: primary,
-          status: amtDiff < 0.02 ? 'matched' : 'partial',
-          confidence: amtDiff < 0.02 ? 100 : 75,
-          matchedRecord: match,
-          issue: amtDiff < 0.02 ? '' : ISSUE_MESSAGES.partial,
-          recommendedAction: amtDiff < 0.02 ? '' : ACTIONS.partial,
-        })
-        continue
+      if (confidence > bestConfidence) {
+        bestConfidence = confidence;
+        bestStatus = status;
+        bestMatch = match;
+        bestIssue = issue;
       }
-
-      // Amount differs significantly without obvious explanation
-      results.push({
-        record: primary,
-        status: 'partial',
-        confidence: 60,
-        matchedRecord: match,
-        issue: `Amount discrepancy of ${amtDiff.toFixed(2)} (${(pctDiff * 100).toFixed(1)}%)`,
-        recommendedAction: ACTIONS.partial,
-      })
-    } else {
-      results.push({
-        record: primary,
-        status: 'unmatched',
-        confidence: 0,
-        issue: ISSUE_MESSAGES.unmatched,
-        recommendedAction: ACTIONS.unmatched,
-      })
     }
+
+    if (bestStatus === 'matched' || bestStatus === 'timing_drift' || bestStatus === 'partial') {
+      console.log("MATCHED:", primary.reference, primary.source, "WITH", bestMatch.reference, bestMatch.source);
+    }
+
+    results.push({
+      record: primary,
+      status: bestStatus,
+      confidence: bestConfidence,
+      matchedRecord: bestMatch,
+      issue: bestIssue,
+      recommendedAction: ACTIONS[bestStatus] || '',
+    })
   }
 
   return results.sort((a, b) => {
