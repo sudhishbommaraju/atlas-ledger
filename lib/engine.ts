@@ -269,6 +269,56 @@ export function buildCanonicalResults(
 
   // 3. Multi-source Candidate Matching
   const matchedTxnIds = new Set<string>()
+
+  // Batch Matching (Ledger to Bank)
+  const availableLedger = uniqueOperational.filter(r => r.sourceType === 'ledger')
+  const availableBank = uniqueOperational.filter(r => r.sourceType === 'bank')
+  
+  for (const bank of availableBank) {
+    const possibleLedgers = availableLedger.filter(l => !matchedTxnIds.has(l.id) && l.currency === bank.currency)
+    
+    // Group by settlementBatchId
+    const byBatch = new Map<string, CanonicalTransaction[]>()
+    for (const l of possibleLedgers) {
+      if (l.settlementBatchId) {
+        if (!byBatch.has(l.settlementBatchId)) byBatch.set(l.settlementBatchId, [])
+        byBatch.get(l.settlementBatchId)!.push(l)
+      }
+    }
+
+    let matchedLedgers: CanonicalTransaction[] = []
+    let matchedBatchId = ''
+    
+    for (const [batchId, group] of byBatch) {
+      const sum = group.reduce((s, g) => s + g.amountAbs, 0)
+      if (Math.abs(sum - bank.amountAbs) <= 0.01) {
+        matchedLedgers = group
+        matchedBatchId = batchId
+        break
+      }
+    }
+
+    if (matchedLedgers.length > 1) {
+      const txns = [bank, ...matchedLedgers]
+      txns.forEach(t => {
+        matchedTxnIds.add(t.id)
+      })
+      clusters.push({
+        clusterId: `cluster-batch-${bank.id}`,
+        canonicalReference: bank.originalReference || matchedBatchId || 'batch-match',
+        status: 'matched',
+        confidence: 95,
+        transactions: txns,
+        sourcesPresent: Array.from(new Set(txns.map(t => t.sourceType))),
+        missingSources: [],
+        exposureAmount: bank.amountAbs,
+        operationalRisk: 'low',
+        payoutImpact: 0,
+        matchReason: `Batch match: ${matchedLedgers.length} ledger rows sum to bank debit`,
+        issues: []
+      })
+    }
+  }
   
   // Prioritize ledgers matching first, then PSP matching
   const matchingOrder = ['ledger', 'psp', 'erp', 'bank', 'unknown']
