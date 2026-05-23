@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useReconStore } from '@/store/recon-store'
 import FileUploader from '@/components/file-uploader'
 import ReconClusterTable from '@/components/recon-cluster-table'
@@ -14,7 +16,19 @@ function fmt(n: number, currency?: string): string {
 }
 
 export default function ReconciliationPage() {
+  const router = useRouter()
+  const [isAuthorized, setIsAuthorized] = useState(false)
   const { files, results, excludedSheets, hasRun, runReconciliation } = useReconStore()
+
+  useEffect(() => {
+    if (!sessionStorage.getItem('atlas_demo_access')) {
+      router.push('/demo-access')
+    } else {
+      setIsAuthorized(true)
+    }
+  }, [router])
+
+  if (!isAuthorized) return null;
 
   const operationalFiles = files.filter((f) => f.sourceType !== 'validation')
   const validationFiles = files.filter((f) => f.sourceType === 'validation')

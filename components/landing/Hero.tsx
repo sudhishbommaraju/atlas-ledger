@@ -236,7 +236,7 @@ export default function Hero() {
               transition={{ duration: 0.7, delay: 0.3, ease: 'easeOut' }}
               style={{ display: 'flex', gap: 16 }}
             >
-              <Link href="/demo" className="btn-primary" style={{ padding: '14px 28px', fontSize: '1rem' }}>
+              <Link href="/demo-access" className="btn-primary" style={{ padding: '14px 28px', fontSize: '1rem' }}>
                 View Demo
               </Link>
               <Link href="/request-access" className="btn-secondary" style={{ padding: '14px 28px', fontSize: '1rem' }}>
