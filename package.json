@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@insforge/sdk": "^1.2.10",
     "@radix-ui/react-accordion": "^1.2.12",
     "adm-zip": "^0.5.17",
     "framer-motion": "^12.40.0",
