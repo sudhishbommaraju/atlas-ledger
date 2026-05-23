@@ -9,8 +9,8 @@ function LiveReconciliationPreview() {
 
   useEffect(() => {
     if (prefersReducedMotion) {
-      setProgress(100)
-      return
+      const t = setTimeout(() => setProgress(100), 0)
+      return () => clearTimeout(t)
     }
 
     let startTime = Date.now()

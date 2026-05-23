@@ -314,7 +314,7 @@ export function buildCanonicalResults(
     const bestScore = bestCandidates.length > 0 ? bestCandidates[0].score : 0
 
     let status: MatchStatus = 'unmatched'
-    let confidence = bestScore
+    const confidence = bestScore
     let failedRules: string[] = []
     let matchReason = ''
     let issues: string[] = []
