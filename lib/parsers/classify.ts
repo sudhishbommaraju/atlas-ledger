@@ -1,16 +1,35 @@
 import { SourceType } from '../types'
 
+/**
+ * Returns true if the filename is a validation/test artifact that should NOT
+ * be treated as an operational source.
+ *
+ * Rules (all applied to the lowercased basename without path):
+ *   - starts with  ground_truth
+ *   - starts with  expected_
+ *   - starts with  validation_
+ *   - ends with    _schema.json  OR  .schema.json
+ *
+ * Intentionally NOT matched:
+ *   - _test inside a filename like atlas_backend_test_workbook.xlsx
+ *   - workbook, dataset, reconciliation, etc.
+ */
+export function isValidationFile(filename: string): boolean {
+  const name = filename.toLowerCase().replace(/\\/g, '/').split('/').pop() ?? filename.toLowerCase()
+  return (
+    name.startsWith('ground_truth') ||
+    name.startsWith('expected_') ||
+    name.startsWith('validation_') ||
+    name.endsWith('_schema.json') ||
+    name.endsWith('.schema.json')
+  )
+}
+
 export function inferSourceType(filename: string, headers: string[] = []): SourceType {
   const name = filename.toLowerCase()
-  
-  // 1. Validation Artifacts
-  if (
-    name.includes('ground_truth') ||
-    name.includes('expected_') ||
-    name.includes('validation_') ||
-    name.includes('_test') ||
-    name.endsWith('.schema.json')
-  ) {
+
+  // 1. Validation Artifacts — strict prefix/suffix matching only
+  if (isValidationFile(filename)) {
     return 'validation'
   }
 
@@ -20,7 +39,7 @@ export function inferSourceType(filename: string, headers: string[] = []): Sourc
   if (name.includes('stripe') || name.includes('psp') || name.includes('adyen') || name.includes('paypal')) return 'psp'
   if (name.includes('erp') || name.includes('netsuite') || name.includes('sap') || name.includes('oracle')) return 'erp'
 
-  // 3. Schema hints
+  // 3. Schema hints from column headers
   const h = headers.join(' ').toLowerCase()
   if (h.includes('bank_txn_id')) return 'bank'
   if (h.includes('stripe_id') || (h.includes('gross_amount') && h.includes('net_amount'))) return 'psp'

@@ -27,18 +27,22 @@ export function validateFile(filename: string, sizeBytes: number): string | null
 export async function parseFile(buffer: Buffer, filename: string): Promise<ExtractedFileResult[]> {
   const ext = getExtension(filename)
 
+  // ZIP: delegated to its own multi-file parser
   if (ext === '.zip') {
     return parseZip(buffer, filename)
   }
 
+  // XLSX: now returns one result per sheet
+  if (ext === '.xlsx') {
+    return parseXlsx(buffer, filename)
+  }
+
+  // Single-file parsers — wrap in an array
   let parsed
   try {
     switch (ext) {
       case '.csv':
         parsed = parseCsv(buffer.toString('utf-8'), filename)
-        break
-      case '.xlsx':
-        parsed = parseXlsx(buffer, filename)
         break
       case '.json':
         parsed = parseJson(buffer.toString('utf-8'), filename)
@@ -52,7 +56,12 @@ export async function parseFile(buffer: Buffer, filename: string): Promise<Extra
         parsed = parseFallback(filename)
         break
       default:
-        parsed = { records: [], warnings: [], excludedSheets: [], error: `No parser available for extension "${ext}".` }
+        parsed = {
+          records: [],
+          warnings: [],
+          excludedSheets: [],
+          error: `No parser available for extension "${ext}".`,
+        }
     }
   } catch (err) {
     parsed = {
@@ -64,7 +73,7 @@ export async function parseFile(buffer: Buffer, filename: string): Promise<Extra
   }
 
   const sourceType = inferSourceType(filename)
-  parsed.records.forEach(r => {
+  parsed.records.forEach((r) => {
     r.sourceType = sourceType
   })
 
@@ -72,6 +81,6 @@ export async function parseFile(buffer: Buffer, filename: string): Promise<Extra
     ...parsed,
     filename,
     sizeBytes: buffer.length,
-    sourceType
+    sourceType,
   }]
 }

@@ -14,9 +14,45 @@ type ReconState = {
   updateFileStatus: (id: string, status: FileStatus, records?: ParsedRecord[], warnings?: string[], error?: string, excludedSheets?: ExcludedSheet[]) => void
   removeFile: (id: string) => void
   addExcludedSheets: (sheets: ExcludedSheet[]) => void
-  canRunReconciliation: () => boolean
   runReconciliation: () => void
   reset: () => void
+}
+
+/** Files that are NOT validation assets */
+function operationalFiles(files: UploadedFile[]): UploadedFile[] {
+  return files.filter((f) => f.sourceType !== 'validation')
+}
+
+/** Files that ARE validation assets */
+function validationFiles(files: UploadedFile[]): UploadedFile[] {
+  return files.filter((f) => f.sourceType === 'validation')
+}
+
+/**
+ * Run Reconciliation is enabled when:
+ *  - At least 2 operational sources have finished parsing (parsed or warning)
+ *  - At least one of those sources has records (rowCount > 0)
+ *  - No fatal in-progress states remain (pending/parsing)
+ */
+function canRun(files: UploadedFile[]): boolean {
+  const ops = operationalFiles(files)
+  const ready = ops.filter((f) => f.status === 'parsed' || f.status === 'warning')
+  const parsing = ops.filter((f) => f.status === 'pending' || f.status === 'parsing')
+  if (parsing.length > 0) return false             // still uploading
+  if (ready.length < 2) return false               // need at least 2 sources
+  if (!ready.some((f) => f.recordCount > 0)) return false  // need at least 1 non-empty source
+  return true
+}
+
+/** Human-readable reason why Run Reconciliation is disabled (used by button console.warn) */
+export function canRunReason(files: UploadedFile[]): string {
+  const ops = operationalFiles(files)
+  const parsing = ops.filter((f) => f.status === 'pending' || f.status === 'parsing')
+  if (parsing.length > 0) return `Still parsing ${parsing.length} file(s)`
+  const ready = ops.filter((f) => f.status === 'parsed' || f.status === 'warning')
+  if (ready.length < 2) return `Need at least 2 operational sources (have ${ready.length})`
+  if (!ready.some((f) => f.recordCount > 0)) return 'All operational sources have 0 rows'
+  return 'Unknown reason'
 }
 
 export const useReconStore = create<ReconState>((set, get) => ({
@@ -42,36 +78,42 @@ export const useReconStore = create<ReconState>((set, get) => ({
       files: s.files.filter((f) => f.id !== id),
       results: null,
       hasRun: false,
-      excludedSheets: s.files.length === 1 ? [] : s.excludedSheets
+      excludedSheets: s.files.length === 1 ? [] : s.excludedSheets,
     })),
 
   addExcludedSheets: (sheets) =>
     set((s) => ({
-      excludedSheets: [...s.excludedSheets, ...sheets]
+      excludedSheets: [...s.excludedSheets, ...sheets],
     })),
-
-  canRunReconciliation: () => {
-    const { files } = get()
-    const readyFiles = files.filter(f => f.status === 'parsed' || f.status === 'warning')
-    return readyFiles.length >= 2 && files.some(f => f.recordCount > 0)
-  },
 
   runReconciliation: () => {
     const { files, excludedSheets } = get()
+
+    const canRunNow = canRun(files)
+    if (!canRunNow) {
+      console.warn('[Atlas] Run Reconciliation blocked:', canRunReason(files))
+      return
+    }
+
+    // Only pass operational records to the engine.
+    // The engine handles validation-typed records separately via sourceType.
     const allRecords = files.flatMap((f) => f.records)
-    const parserWarnings = files.flatMap((f) => 
-      f.warnings.map(msg => ({ sourceName: f.name, message: msg }))
+    const parserWarnings = files.flatMap((f) =>
+      f.warnings.map((msg) => ({ sourceName: f.name, message: msg }))
     )
-    
+
     const results = buildCanonicalResults(
-      allRecords, 
+      allRecords,
       parserWarnings,
       excludedSheets,
       `run-${Date.now()}`
     )
-    
+
     set({ results, hasRun: true })
   },
 
   reset: () => set({ files: [], results: null, excludedSheets: [], hasRun: false }),
 }))
+
+// Re-export helpers so the demo page can use them directly
+export { operationalFiles, validationFiles, canRun }

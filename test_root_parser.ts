@@ -4,17 +4,24 @@ import { parseXlsx } from './lib/parsers/xlsx'
 import { buildCanonicalResults } from './lib/engine'
 
 const buffer = fs.readFileSync(path.join('atlas-ledger', 'frontend', 'test_data', 'atlas_backend_test_workbook.xlsx'))
-const result = parseXlsx(buffer, 'atlas_backend_test_workbook.xlsx')
 
-console.log('Total Records Parsed:', result.records.length)
-console.log('Warnings:', result.warnings)
+// parseXlsx now returns ExtractedFileResult[] — one entry per sheet
+const sheetResults = parseXlsx(buffer, 'atlas_backend_test_workbook.xlsx')
 
-const sources = new Set(result.records.map(r => r.source))
+const allRecords = sheetResults.flatMap(r => r.records)
+const allWarnings = sheetResults.flatMap(r => r.warnings)
+const allExcludedSheets = sheetResults.flatMap(r => r.excludedSheets)
+
+console.log('Sheets parsed:', sheetResults.length)
+console.log('Total Records Parsed:', allRecords.length)
+console.log('Warnings:', allWarnings)
+
+const sources = new Set(allRecords.map(r => r.source))
 console.log('Sources:', Array.from(sources))
 
-const parserWarnings = result.warnings.map(w => ({ sourceName: 'atlas_backend_test_workbook.xlsx', message: w }))
+const parserWarnings = allWarnings.map(w => ({ sourceName: 'atlas_backend_test_workbook.xlsx', message: w }))
 
-const canonical = buildCanonicalResults(result.records, parserWarnings, result.excludedSheets || [], 'test')
+const canonical = buildCanonicalResults(allRecords, parserWarnings, allExcludedSheets, 'test')
 
 console.log(`\nReconciliation Summary:`)
 console.log(`Matches: ${canonical.metrics.matched}`)
