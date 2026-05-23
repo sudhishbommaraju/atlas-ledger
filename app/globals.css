@@ -121,7 +121,7 @@ select:focus {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: transparent;
+  background: #FFFFFF;
   color: var(--text-primary);
   padding: 10px 20px;
   border-radius: 6px;
