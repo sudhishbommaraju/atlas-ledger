@@ -32,14 +32,33 @@ export default function Nav() {
 
         {/* Links */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 32 }} className="hidden md:flex">
-          {['Platform', 'Demo', 'Security', 'Developers', 'Company'].map(item => (
-            <Link key={item} href={item === 'Demo' ? '/dashboard' : `/${item.toLowerCase()}`} style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s ease' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--primary-blue)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-            >
-              {item}
-            </Link>
-          ))}
+          <Link href="/platform" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s ease' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--primary-blue)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+          >
+            Platform
+          </Link>
+          <Link href="/dashboard" className="text-[0.9rem] text-[var(--text-secondary)] font-medium no-underline hover:text-[var(--primary-blue)] transition-colors duration-200" style={{ textDecoration: 'none' }}>
+            Demo
+          </Link>
+          <Link href="/security" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s ease' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--primary-blue)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+          >
+            Security
+          </Link>
+          <Link href="/developers" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s ease' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--primary-blue)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+          >
+            Developers
+          </Link>
+          <Link href="/company" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s ease' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--primary-blue)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+          >
+            Company
+          </Link>
         </div>
 
         {/* CTA */}

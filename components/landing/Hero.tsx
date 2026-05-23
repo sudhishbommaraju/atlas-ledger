@@ -45,8 +45,14 @@ export default function Hero() {
               initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}
               transition={{ duration: 0.7, delay: 0.3, ease: 'easeOut' }}
               style={{ display: 'flex', gap: 16, justifyContent: 'center' }}
+              className="relative z-50 pointer-events-auto"
             >
-              <Link href="/dashboard" className="btn-primary" style={{ padding: '14px 28px', fontSize: '1rem' }}>
+              <Link
+                href="/dashboard"
+                prefetch={false}
+                className="relative z-50 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                data-testid="view-demo-link"
+              >
                 View Demo
               </Link>
               <Link href="/request-access" className="btn-secondary" style={{ padding: '14px 28px', fontSize: '1rem' }}>
