@@ -2,6 +2,12 @@ import { ParsedRecord, RecordType } from '../types'
 
 export const TRANSACTION_REFERENCE_FIELDS = [
   "reference",
+  "external_reference",
+  "external_id",
+  "payout_reference",
+  "payment_reference",
+  "transaction_reference",
+  "processor_reference",
   "ref",
   "transaction_id",
   "transactionid",
@@ -46,7 +52,7 @@ export const DESC_KEYS = [
   "merchant", "payee", "booking_text", "bookingtext", "vendor_name", "vendorname"
 ]
 
-const DATE_KEYS = ['date', 'settlement_date', 'transaction_date', 'value_date', 'posting_date', 'created_at', 'timestamp', 'txn_date']
+const DATE_KEYS = ['date', 'effective_date', 'settlement_date', 'transaction_date', 'value_date', 'posting_date', 'created_at', 'timestamp', 'txn_date']
 const CCY_KEYS = ['currency', 'ccy', 'iso_currency', 'currency_code']
 const TYPE_KEYS = ['type', 'transaction_type', 'txn_type', 'record_type', 'entry_type', 'category']
 
@@ -139,9 +145,18 @@ function parseMappedAmount(row: Record<string, string>): AmountParseResult {
 
   if (match.value !== undefined && String(match.value).trim() !== "") {
     const amountStr = String(match.value);
-    const amount = parseFloat(amountStr.replace(/[^0-9.\-]/g, ''));
+    
+    // Check if the value is explicitly wrapped in accounting parentheses
+    let isNegative = amountStr.includes('-');
+    if (amountStr.trim().startsWith('(') && amountStr.trim().endsWith(')')) {
+      isNegative = true;
+    }
+
+    // Parse absolute magnitude
+    let amount = parseFloat(amountStr.replace(/[^0-9.]/g, ''));
 
     if (!isNaN(amount)) {
+      if (isNegative) amount = -amount;
       return {
         amount,
         detectedColumn: match.detectedColumn,

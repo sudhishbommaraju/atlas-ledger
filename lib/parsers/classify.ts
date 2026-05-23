@@ -36,7 +36,7 @@ export function inferSourceType(filename: string, headers: string[] = []): Sourc
   // 2. Filename heuristics
   if (name.includes('ledger')) return 'ledger'
   if (name.includes('bank')) return 'bank'
-  if (name.includes('stripe') || name.includes('psp') || name.includes('adyen') || name.includes('paypal')) return 'psp'
+  if (name.includes('stripe') || name.includes('psp') || name.includes('adyen') || name.includes('paypal') || name.includes('refund') || name.includes('chargeback') || name.includes('reserve')) return 'psp'
   if (name.includes('erp') || name.includes('netsuite') || name.includes('sap') || name.includes('oracle')) return 'erp'
 
   // 3. Schema hints from column headers
