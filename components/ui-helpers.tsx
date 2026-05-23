@@ -55,46 +55,4 @@ export function MetricCard({
   );
 }
 
-export function WorkflowStepper({
-  uploaded,
-  normalized,
-  matched,
-  reviewed,
-}: {
-  uploaded: boolean;
-  normalized: boolean;
-  matched: boolean;
-  reviewed: boolean;
-}) {
-  const steps = [
-    { label: "Upload", done: uploaded },
-    { label: "Normalize", done: normalized },
-    { label: "Match", done: matched },
-    { label: "Review", done: reviewed },
-    { label: "Export", done: false },
-  ];
 
-  return (
-    <div className="rounded-xl border border-[rgba(11,18,32,0.10)] bg-[#FFFFFF] p-5 shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
-      <div className="flex items-center gap-3">
-        {steps.map((step, index) => (
-          <div key={step.label} className="flex flex-1 items-center gap-3">
-            <div className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border text-xs transition-colors duration-300 ${
-              step.done
-                ? "border-[#1D4ED8] bg-[#DBEAFE] text-[#1D4ED8] font-semibold"
-                : "border-neutral-200 bg-neutral-50 text-neutral-400"
-            }`}>
-              {index + 1}
-            </div>
-            <span className={`text-sm font-medium transition-colors duration-300 ${step.done ? "text-[#0B1220]" : "text-neutral-400"}`}>
-              {step.label}
-            </span>
-            {index < steps.length - 1 && (
-              <div className={`h-px flex-1 transition-colors duration-300 ${step.done ? "bg-[#DBEAFE]" : "bg-neutral-100"}`} />
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}

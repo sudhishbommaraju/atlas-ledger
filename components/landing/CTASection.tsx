@@ -15,7 +15,7 @@ export default function CTASection() {
       <div className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
         
         <h2 style={{ fontSize: '2.8rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em', marginBottom: 20 }}>
-          Stop reconciling payouts <br/> in spreadsheets.
+          Stop blindly triggering <br/> unsafe payouts.
         </h2>
         
         <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', maxWidth: 480, lineHeight: 1.6, marginBottom: 40 }}>
@@ -37,8 +37,8 @@ export default function CTASection() {
         <div style={{ display: 'flex', gap: 48, borderTop: '1px solid var(--border-default)', paddingTop: 40 }}>
           {[
             { val: '$2.4B+', label: 'Tracked' },
-            { val: '99.8%', label: 'Match Accuracy' },
-            { val: '<1s', label: 'Reconciliation Latency' }
+            { val: '100%', label: 'Canonical Integrity' },
+            { val: '<1s', label: 'Live Drift Detection' }
           ].map(m => (
             <div key={m.label}>
               <div className="mono" style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{m.val}</div>

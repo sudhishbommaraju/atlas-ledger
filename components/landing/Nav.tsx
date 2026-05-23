@@ -33,7 +33,7 @@ export default function Nav() {
         {/* Links */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 32 }} className="hidden md:flex">
           {['Platform', 'Demo', 'Security', 'Developers', 'Company'].map(item => (
-            <Link key={item} href={`/${item.toLowerCase()}`} style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s ease' }}
+            <Link key={item} href={item === 'Demo' ? '/dashboard' : `/${item.toLowerCase()}`} style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s ease' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--primary-blue)'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
             >
