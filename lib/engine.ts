@@ -26,35 +26,65 @@ function calculateRisk(exposure: number, isChargebackOrRefund: boolean): Operati
   return 'low'
 }
 
-function normalizeDate(d: string): string {
+function parseAndNormalizeDate(d: string): string {
   if (!d) return ''
-  const t = new Date(d)
-  if (!isNaN(t.getTime())) {
-    return t.toISOString().split('T')[0]
+  const trimmed = d.trim()
+  
+  // YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+    return trimmed.split('T')[0]
   }
-  return d.trim()
+
+  // DD-MM-YYYY or DD/MM/YYYY format (e.g. 14-04-2026 or 14/04/2026)
+  const dd_mm_yyyy_match = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/)
+  if (dd_mm_yyyy_match) {
+    const day = dd_mm_yyyy_match[1].padStart(2, '0')
+    const month = dd_mm_yyyy_match[2].padStart(2, '0')
+    const year = dd_mm_yyyy_match[3]
+    return `${year}-${month}-${day}`
+  }
+
+  // MM/DD/YYYY format (e.g. 04/14/2026)
+  const mm_dd_yyyy_match = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/)
+  if (mm_dd_yyyy_match) {
+    const month = mm_dd_yyyy_match[1].padStart(2, '0')
+    const day = mm_dd_yyyy_match[2].padStart(2, '0')
+    const year = mm_dd_yyyy_match[3]
+    return `${year}-${month}-${day}`
+  }
+
+  // Fallback
+  const parsed = new Date(trimmed)
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().split('T')[0]
+  }
+
+  return trimmed
 }
 
-function canonicalReference(value?: string) {
+function canonicalReference(value?: string): string {
   let v = String(value ?? "").trim().toLowerCase()
   v = v.replace(/[\s\-_]/g, "")
   v = v.replace(/^(ref|txn|po|payout)/, "")
   return v
 }
 
-function canonicalPayee(value?: string) {
+function canonicalPayee(value?: string): string {
   let v = String(value ?? "").trim().toLowerCase()
   v = v.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")
   v = v.replace(/\b(inc|llc|ltd|corp|co|company)\b/g, "")
-  v = v.replace(/\s{2,}/g, " ")
-  return v.trim()
+  v = v.replace(/\s+/g, "")
+  return v
 }
 
 function mapToCanonical(r: ParsedRecord): CanonicalTransaction {
-  const normalizedDate = normalizeDate(r.date)
+  const normalizedDate = parseAndNormalizeDate(r.date)
   const amountSigned = r.amount
   const amountAbs = Math.abs(r.amount)
   
+  // Extract payee with vendor_name support
+  const payee = r.raw.payee || r.raw.merchant || r.raw.vendor_name || r.raw.vendorname || r.raw.counterparty || ''
+
   return {
     id: r.id,
     sourceFile: r.source,
@@ -69,11 +99,11 @@ function mapToCanonical(r: ParsedRecord): CanonicalTransaction {
     amountSigned,
     amountAbs,
     currency: (r.currency || 'USD').toUpperCase(),
-    payee: r.raw.payee || r.raw.merchant || '',
-    normalizedPayee: canonicalPayee(r.raw.payee || r.raw.merchant),
+    payee,
+    normalizedPayee: canonicalPayee(payee),
     description: r.description || '',
     normalizedDescription: (r.description || '').toLowerCase(),
-    settlementBatchId: r.settlementBatchId,
+    settlementBatchId: r.settlementBatchId || r.raw.settlement_id || r.raw.batch_id || '',
     type: r.type,
     rawRow: r.raw,
     normalizationWarnings: r.normalizationWarnings,
@@ -84,73 +114,56 @@ function scoreCandidate(primary: CanonicalTransaction, candidate: CanonicalTrans
   let score = 0
   let refScore = 0
   let amtScore = 0
+  let currencyScore = 0
   let dateScore = 0
   let payeeScore = 0
-  let semScore = 0
-  let batchScore = 0
   const failedRules: string[] = []
 
-  // Amount
+  // 1. Currency (+10)
+  if (primary.currency === candidate.currency) {
+    currencyScore = 10
+  } else {
+    failedRules.push('currency mismatch')
+  }
+
+  // 2. Amount exact abs (+35)
   const amtDiff = Math.abs(primary.amountAbs - candidate.amountAbs)
   if (amtDiff <= 0.01) {
-    amtScore = 30
-  } else if (amtDiff <= 0.05) {
-    amtScore = 20
+    amtScore = 35
   } else {
-    failedRules.push('Amount outside $0.05 tolerance')
+    failedRules.push('amount mismatch')
   }
 
-  // Reference
-  if (primary.normalizedReference && candidate.normalizedReference) {
-    if (primary.normalizedReference === candidate.normalizedReference) {
-      refScore = 40
-    } else if (primary.normalizedReference.includes(candidate.normalizedReference) || candidate.normalizedReference.includes(primary.normalizedReference)) {
-      refScore = 25
-    } else {
-      refScore = 10
-      failedRules.push('Reference mismatch')
-    }
-  } else {
-    failedRules.push('Missing reference')
-  }
-
-  // Date
+  // 3. Date within 2 days (+20)
   const drift = daysBetween(primary.normalizedDate, candidate.normalizedDate)
-  if (drift === 0) dateScore = 15
-  else if (drift <= 1) dateScore = 10
-  else if (drift <= 2) dateScore = 7
-  else if (drift <= 8) {
-    dateScore = 3
-    failedRules.push('Date extended review window')
+  if (drift <= 2) {
+    dateScore = 20
   } else {
-    failedRules.push('Date outside tolerance')
+    failedRules.push('date outside tolerance')
   }
 
-  // Payee
-  if (primary.normalizedPayee && candidate.normalizedPayee) {
-    if (primary.normalizedPayee === candidate.normalizedPayee) payeeScore = 10
-    else payeeScore = 6
+  // 4. Reference exact or fuzzy (+25)
+  const pRef = primary.normalizedReference || ''
+  const cRef = candidate.normalizedReference || ''
+  if (pRef && cRef && (pRef === cRef || pRef.includes(cRef) || cRef.includes(pRef))) {
+    refScore = 25
+  } else {
+    failedRules.push('reference mismatch')
   }
 
-  // Semantics
-  const pDesc = primary.normalizedDescription
-  const cDesc = candidate.normalizedDescription
-  const semTerms = ['ach', 'wire', 'payout', 'settlement', 'transfer', 'vendor', 'debit', 'credit']
-  if (semTerms.some(t => pDesc.includes(t) && cDesc.includes(t))) {
-    semScore = 5
+  // 5. Payee exact or fuzzy (+10)
+  const pPay = primary.normalizedPayee || ''
+  const cPay = candidate.normalizedPayee || ''
+  if (pPay && cPay && (pPay === cPay || pPay.includes(cPay) || cPay.includes(pPay))) {
+    payeeScore = 10
   }
 
-  // Batch
-  if (primary.settlementBatchId && candidate.settlementBatchId && primary.settlementBatchId === candidate.settlementBatchId) {
-    batchScore = 10
-  }
-
-  score = Math.min(100, refScore + amtScore + dateScore + payeeScore + semScore + batchScore)
+  score = Math.min(100, refScore + amtScore + currencyScore + dateScore + payeeScore)
 
   return {
     candidateId: candidate.id,
     score,
-    breakdown: { total: score, reference: refScore, amount: amtScore, date: dateScore, payee: payeeScore, semantics: semScore, batch: batchScore },
+    breakdown: { total: score, reference: refScore, amount: amtScore, date: dateScore, payee: payeeScore, semantics: 0, batch: 0 },
     failedDimensions: failedRules,
     candidateRow: candidate
   }
@@ -162,12 +175,11 @@ export function buildCanonicalResults(
   excludedSheets: ExcludedSheet[],
   runId: string
 ): CanonicalResults {
-  const allCanonical = allRecords.filter(r => r.valid).map(mapToCanonical)
+  const validationAssets = allRecords.filter(r => r.sourceType === 'validation')
+  const operationalParsed = allRecords.filter(r => r.sourceType !== 'validation')
+  const validCanonical = operationalParsed.filter(r => r.valid).map(mapToCanonical)
   
-  // 1. Exclude Validation Assets & Zero rows
-  const validationAssets = allCanonical.filter(r => r.sourceType === 'validation')
-  let operational = allCanonical.filter(r => r.sourceType !== 'validation')
-  
+  let operational = validCanonical
   const ignoredZero = operational.filter(r => r.amountAbs === 0)
   operational = operational.filter(r => r.amountAbs !== 0)
 
@@ -214,7 +226,7 @@ export function buildCanonicalResults(
           status: 'duplicate',
           confidence: 100,
           transactions: dups,
-          sourcesPresent: [source],
+          sourcesPresent: [p.sourceType],
           missingSources: [],
           exposureAmount: dups.reduce((s, d) => s + d.amountAbs, 0),
           operationalRisk: 'low',
@@ -222,30 +234,24 @@ export function buildCanonicalResults(
           matchReason: 'Duplicate records within the same source file',
           issues: ['Same amount, date, and reference/payee in one source']
         })
-        uniqueOperational.push(dups[0]) // Keep one for cross-matching
+        uniqueOperational.push(p) // Keep the first one for matching
       } else {
         uniqueOperational.push(p)
       }
     }
   }
 
-  // 3. Cross-Source Candidate Matching
+  // 3. Batch Matching (Ledger to Bank)
   const availableLedger = uniqueOperational.filter(r => r.sourceType === 'ledger')
   const availableBank = uniqueOperational.filter(r => r.sourceType === 'bank')
-  const availablePsp = uniqueOperational.filter(r => r.sourceType === 'psp')
-  const availableErp = uniqueOperational.filter(r => r.sourceType === 'erp')
+  
+  const matchedLedgerIds = new Set<string>()
+  const matchedCandidateIds = new Set<string>()
 
-  const usedIds = new Set<string>()
-
-  // Batch Matching Helper (Ledger to Bank)
-  // For each bank row, find if there are multiple ledger rows matching batch or date/payee that sum to it
   for (const bank of availableBank) {
-    if (usedIds.has(bank.id)) continue
+    const possibleLedgers = availableLedger.filter(l => !matchedLedgerIds.has(l.id) && l.currency === bank.currency)
     
-    // Find ledger rows not used
-    const possibleLedgers = availableLedger.filter(l => !usedIds.has(l.id) && l.currency === bank.currency)
-    
-    // Group by batch ID
+    // Group by settlementBatchId
     const byBatch = new Map<string, CanonicalTransaction[]>()
     for (const l of possibleLedgers) {
       if (l.settlementBatchId) {
@@ -255,21 +261,29 @@ export function buildCanonicalResults(
     }
 
     let matchedLedgers: CanonicalTransaction[] = []
+    let matchedBatchId = ''
     
     for (const [batchId, group] of byBatch) {
       const sum = group.reduce((s, g) => s + g.amountAbs, 0)
       if (Math.abs(sum - bank.amountAbs) <= 0.01) {
         matchedLedgers = group
+        matchedBatchId = batchId
         break
       }
     }
 
     if (matchedLedgers.length > 1) {
       const txns = [bank, ...matchedLedgers]
-      txns.forEach(t => usedIds.add(t.id))
+      txns.forEach(t => {
+        if (t.sourceType === 'ledger') {
+          matchedLedgerIds.add(t.id)
+        } else {
+          matchedCandidateIds.add(t.id)
+        }
+      })
       clusters.push({
         clusterId: `cluster-batch-${bank.id}`,
-        canonicalReference: bank.originalReference || bank.settlementBatchId || 'batch-match',
+        canonicalReference: bank.originalReference || matchedBatchId || 'batch-match',
         status: 'matched',
         confidence: 95,
         transactions: txns,
@@ -284,131 +298,120 @@ export function buildCanonicalResults(
     }
   }
 
-  // 1-to-1 matching
-  const allKnownSources = Array.from(new Set(uniqueOperational.map(r => r.sourceType)))
+  // 4. Candidate Lookup Search
+  const candidatePool = uniqueOperational.filter(r => r.sourceType !== 'ledger')
+  const ledgerRows = uniqueOperational.filter(r => r.sourceType === 'ledger')
 
-  const match1to1 = (primary: CanonicalTransaction, candidatesPool: CanonicalTransaction[]) => {
-    if (usedIds.has(primary.id)) return
+  for (const ledger of ledgerRows) {
+    if (matchedLedgerIds.has(ledger.id)) continue
     
-    const candidates = candidatesPool.filter(c => !usedIds.has(c.id) && c.currency === primary.currency)
-    if (candidates.length === 0) {
-      clusters.push({
-        clusterId: `cluster-unm-${primary.id}`,
-        canonicalReference: primary.originalReference || primary.id,
-        status: 'unmatched',
-        confidence: 0,
-        transactions: [primary],
-        sourcesPresent: [primary.sourceType],
-        missingSources: allKnownSources.filter(s => s !== primary.sourceType),
-        exposureAmount: primary.amountAbs,
-        operationalRisk: calculateRisk(primary.amountAbs, false),
-        payoutImpact: primary.amountAbs,
-        matchReason: '',
-        issues: ['No compatible source candidate'],
-        failedRules: []
-      })
-      usedIds.add(primary.id)
-      return
-    }
+    const availableCandidates = candidatePool.filter(c => !matchedCandidateIds.has(c.id))
+    const allCandidatesScored = availableCandidates
+      .map(c => scoreCandidate(ledger, c))
+      .sort((a, b) => b.score - a.score)
+      
+    const bestCandidates = allCandidatesScored.slice(0, 3)
+    const bestScore = bestCandidates.length > 0 ? bestCandidates[0].score : 0
 
-    const scored = candidates.map(c => scoreCandidate(primary, c)).sort((a, b) => b.score - a.score)
-    const best = scored[0]
+    let status: MatchStatus = 'unmatched'
+    let confidence = bestScore
+    let failedRules: string[] = []
+    let matchReason = ''
+    let issues: string[] = []
+    const matchedTxns: CanonicalTransaction[] = [ledger]
 
-    if (best.score >= 90) {
-      usedIds.add(primary.id)
-      usedIds.add(best.candidateRow.id)
-      clusters.push({
-        clusterId: `cluster-mat-${primary.id}`,
-        canonicalReference: primary.originalReference || best.candidateRow.originalReference,
-        status: 'matched',
-        confidence: best.score,
-        transactions: [primary, best.candidateRow],
-        sourcesPresent: [primary.sourceType, best.candidateRow.sourceType],
-        missingSources: [],
-        exposureAmount: primary.amountAbs,
-        operationalRisk: 'low',
-        payoutImpact: 0,
-        matchReason: 'Strong 1-to-1 match',
-        issues: [],
-        topCandidates: scored.slice(0, 3)
-      })
-    } else if (best.score >= 70) {
-      usedIds.add(primary.id)
-      usedIds.add(best.candidateRow.id)
-      clusters.push({
-        clusterId: `cluster-par-${primary.id}`,
-        canonicalReference: primary.originalReference || best.candidateRow.originalReference,
-        status: 'partial',
-        confidence: best.score,
-        transactions: [primary, best.candidateRow],
-        sourcesPresent: [primary.sourceType, best.candidateRow.sourceType],
-        missingSources: [],
-        exposureAmount: primary.amountAbs,
-        operationalRisk: 'medium',
-        payoutImpact: primary.amountAbs,
-        matchReason: 'Partial match needs review',
-        issues: best.failedDimensions,
-        topCandidates: scored.slice(0, 3),
-        failedRules: best.failedDimensions
-      })
+    if (bestScore >= 85) {
+      status = 'matched'
+      matchReason = 'Strong multi-source reconciliation match'
+      const best = bestCandidates[0]
+      matchedTxns.push(best.candidateRow)
+      matchedCandidateIds.add(best.candidateRow.id)
+    } else if (bestScore >= 55) {
+      status = 'partial'
+      matchReason = 'Partial match requires manual verification'
+      const best = bestCandidates[0]
+      matchedTxns.push(best.candidateRow)
+      matchedCandidateIds.add(best.candidateRow.id)
+      failedRules = best.failedDimensions
+      issues = failedRules
     } else {
-      usedIds.add(primary.id)
-      clusters.push({
-        clusterId: `cluster-unm-${primary.id}`,
-        canonicalReference: primary.originalReference || primary.id,
-        status: 'unmatched',
-        confidence: best.score,
-        transactions: [primary],
-        sourcesPresent: [primary.sourceType],
-        missingSources: allKnownSources.filter(s => s !== primary.sourceType),
-        exposureAmount: primary.amountAbs,
-        operationalRisk: calculateRisk(primary.amountAbs, false),
-        payoutImpact: primary.amountAbs,
-        matchReason: '',
-        issues: best.failedDimensions.length > 0 ? best.failedDimensions : ['Ambiguous candidates'],
-        topCandidates: scored.slice(0, 3),
-        failedRules: best.failedDimensions
-      })
+      status = 'unmatched'
+      if (bestCandidates.length > 0) {
+        failedRules = bestCandidates[0].failedDimensions
+        issues = failedRules
+      } else {
+        failedRules = ['no candidate found']
+        issues = ['No candidate found']
+      }
     }
+
+    // Missing sources list
+    const sourcesPresentSet = new Set(matchedTxns.map(t => t.sourceType))
+    const missingSources = ['bank', 'psp', 'erp'].filter(s => !sourcesPresentSet.has(s as SourceType))
+    const finalMissingSources = allCandidatesScored.length > 0 ? [] : missingSources
+
+    clusters.push({
+      clusterId: `cluster-ledger-${ledger.id}`,
+      canonicalReference: ledger.originalReference || ledger.id,
+      status,
+      confidence,
+      transactions: matchedTxns,
+      sourcesPresent: Array.from(sourcesPresentSet),
+      missingSources: finalMissingSources,
+      exposureAmount: ledger.amountAbs,
+      operationalRisk: status === 'matched' ? 'low' : calculateRisk(ledger.amountAbs, false),
+      payoutImpact: status === 'matched' ? 0 : ledger.amountAbs,
+      matchReason,
+      issues,
+      topCandidates: bestCandidates,
+      failedRules
+    })
   }
 
-  // Cross match order:
-  // Ledger -> Bank
-  availableLedger.forEach(l => match1to1(l, availableBank))
-  // Ledger -> PSP
-  availableLedger.forEach(l => match1to1(l, availablePsp))
-  // Ledger -> ERP
-  availableLedger.forEach(l => match1to1(l, availableErp))
-  // Remaining Bank
-  availableBank.forEach(b => match1to1(b, availablePsp))
-  
-  // Any unmatched leftovers
-  uniqueOperational.forEach(r => {
-    if (!usedIds.has(r.id)) {
-      clusters.push({
-        clusterId: `cluster-unm-lo-${r.id}`,
-        canonicalReference: r.originalReference || r.id,
-        status: 'unmatched',
-        confidence: 0,
-        transactions: [r],
-        sourcesPresent: [r.sourceType],
-        missingSources: allKnownSources.filter(s => s !== r.sourceType),
-        exposureAmount: r.amountAbs,
-        operationalRisk: calculateRisk(r.amountAbs, false),
-        payoutImpact: r.amountAbs,
-        matchReason: '',
-        issues: ['Orphan record'],
-        failedRules: []
-      })
-      usedIds.add(r.id)
-    }
-  })
+  // Leftover operational non-ledger rows (orphans)
+  const remainingOrphans = candidatePool.filter(c => !matchedCandidateIds.has(c.id))
+  for (const orphan of remainingOrphans) {
+    clusters.push({
+      clusterId: `cluster-orphan-${orphan.id}`,
+      canonicalReference: orphan.originalReference || orphan.id,
+      status: 'unmatched',
+      confidence: 0,
+      transactions: [orphan],
+      sourcesPresent: [orphan.sourceType],
+      missingSources: ['ledger'], // It has no ledger match
+      exposureAmount: orphan.amountAbs,
+      operationalRisk: calculateRisk(orphan.amountAbs, false),
+      payoutImpact: orphan.amountAbs,
+      matchReason: '',
+      issues: ['No ledger candidate found'],
+      failedRules: ['no candidate found']
+    })
+  }
 
-  // Ignored / Validation
-  validationAssets.forEach(r => {
+  // Ignored Zero Rows
+  for (const r of ignoredZero) {
+    clusters.push({
+      clusterId: `cluster-ign-${r.id}`,
+      canonicalReference: r.originalReference || 'zero-amount',
+      status: 'ignored',
+      confidence: 100,
+      transactions: [r],
+      sourcesPresent: [r.sourceType],
+      missingSources: [],
+      exposureAmount: 0,
+      operationalRisk: 'low',
+      payoutImpact: 0,
+      matchReason: 'Zero amount record ignored',
+      issues: []
+    })
+  }
+
+  // Ignored Validation Assets
+  for (const record of validationAssets) {
+    const r = mapToCanonical(record)
     clusters.push({
       clusterId: `cluster-val-${r.id}`,
-      canonicalReference: r.originalReference || 'validation',
+      canonicalReference: r.originalReference || 'validation-asset',
       status: 'ignored',
       confidence: 100,
       transactions: [r],
@@ -420,34 +423,33 @@ export function buildCanonicalResults(
       matchReason: 'Validation asset ignored',
       issues: []
     })
-  })
-  
-  ignoredZero.forEach(r => {
-    clusters.push({
-      clusterId: `cluster-ign-${r.id}`,
-      canonicalReference: r.originalReference || 'zero',
-      status: 'ignored',
-      confidence: 100,
-      transactions: [r],
-      sourcesPresent: [r.sourceType],
-      missingSources: [],
-      exposureAmount: 0,
-      operationalRisk: 'low',
-      payoutImpact: 0,
-      matchReason: 'Zero amount ignored',
-      issues: []
-    })
-  })
+  }
 
-  // Disbursable
-  const grossSettled = operational.filter((r) => r.type === 'settlement').reduce((s, r) => s + r.amountAbs, 0)
-  const fees = operational.filter((r) => r.type === 'fee').reduce((s, r) => s + r.amountAbs, 0)
-  const refunds = operational.filter((r) => r.type === 'refund').reduce((s, r) => s + r.amountAbs, 0)
-  const chargebacks = operational.filter((r) => r.type === 'chargeback').reduce((s, r) => s + r.amountAbs, 0)
-  const reserves = operational.filter((r) => r.type === 'reserve').reduce((s, r) => s + r.amountAbs, 0)
+  // Disbursable Breakdown Calculation
+  let baseTxns = operational.filter(r => r.sourceType === 'ledger')
+  if (baseTxns.length === 0) {
+    baseTxns = operational.filter(r => r.sourceType === 'psp')
+  }
+  if (baseTxns.length === 0) {
+    baseTxns = operational.filter(r => r.sourceType === 'bank')
+  }
+  if (baseTxns.length === 0) {
+    baseTxns = operational
+  }
+
+  const grossSettled = baseTxns.filter((r) => r.type === 'settlement').reduce((s, r) => s + r.amountAbs, 0)
+
+  let feeTxns = operational.filter(r => r.sourceType === 'psp')
+  if (feeTxns.length === 0) feeTxns = operational.filter(r => r.sourceType === 'bank')
+  if (feeTxns.length === 0) feeTxns = baseTxns
+
+  const fees = feeTxns.filter((r) => r.type === 'fee').reduce((s, r) => s + r.amountAbs, 0)
+  const refunds = feeTxns.filter((r) => r.type === 'refund').reduce((s, r) => s + r.amountAbs, 0)
+  const chargebacks = feeTxns.filter((r) => r.type === 'chargeback').reduce((s, r) => s + r.amountAbs, 0)
+  const reserves = feeTxns.filter((r) => r.type === 'reserve').reduce((s, r) => s + r.amountAbs, 0)
   
   const unresolvedExposure = clusters
-    .filter(c => ['unmatched', 'partial', 'eligibility_hold'].includes(c.status) && c.operationalRisk === 'high')
+    .filter(c => ['unmatched', 'eligibility_hold'].includes(c.status) && c.operationalRisk === 'high')
     .reduce((s, c) => s + c.exposureAmount, 0)
 
   const payoutable = Math.max(0, grossSettled - fees - refunds - chargebacks - reserves - unresolvedExposure)
@@ -460,13 +462,53 @@ export function buildCanonicalResults(
   const mDuplicates = clusters.filter(c => c.status === 'duplicate').length
   const mHolds = clusters.filter(c => c.status === 'reserve_hold' || c.status === 'eligibility_hold').length
   
-  const reconcilableCount = mMatched + mPartial + mTiming + mUnmatched + mDuplicates + mHolds
+  const reconcilableCount = mMatched + mPartial + mTiming + mUnmatched + mHolds
   const matchRate = reconcilableCount > 0 ? ((mMatched + mPartial + mTiming) / reconcilableCount) * 100 : 0
 
   clusters.sort((a, b) => {
     const order: MatchStatus[] = ['eligibility_hold', 'unmatched', 'duplicate', 'timing_drift', 'partial', 'matched', 'invalid', 'ignored']
     return order.indexOf(a.status) - order.indexOf(b.status)
   })
+
+  // Generate debug report printout
+  const debugReport = {
+    operationalSources: Array.from(new Set(operational.map(r => r.sourceFile))),
+    validationAssets: Array.from(new Set(validationAssets.map(r => r.source))),
+    totalOperationalRows: operational.length + ignoredZero.length,
+    totalReconcilableRows: reconcilableCount,
+    matchedCount: mMatched,
+    partialCount: mPartial,
+    exceptionCount: mUnmatched,
+    duplicateCount: mDuplicates,
+    ignoredCount: ignoredZero.length,
+    unmatchedSample: clusters
+      .filter(c => c.status === 'unmatched')
+      .slice(0, 10)
+      .map(c => ({
+        reference: c.canonicalReference,
+        amount: c.transactions[0]?.amountOriginal,
+        date: c.transactions[0]?.normalizedDate || c.transactions[0]?.transactionDate,
+        topCandidates: c.topCandidates?.map(cand => ({
+          source: cand.candidateRow.sourceFile,
+          score: cand.score,
+          failed: cand.failedDimensions
+        })) || []
+      }))
+  }
+
+  console.log("=== ATLAS RECONCILIATION ENGINE DEBUG REPORT ===")
+  console.log("operationalSources:", debugReport.operationalSources)
+  console.log("validationAssets:", debugReport.validationAssets)
+  console.log("totalOperationalRows:", debugReport.totalOperationalRows)
+  console.log("totalReconcilableRows:", debugReport.totalReconcilableRows)
+  console.log("matchedCount:", debugReport.matchedCount)
+  console.log("partialCount:", debugReport.partialCount)
+  console.log("exceptionCount:", debugReport.exceptionCount)
+  console.log("duplicateCount:", debugReport.duplicateCount)
+  console.log("ignoredCount:", debugReport.ignoredCount)
+  console.log("First 10 unmatched rows with top 3 candidates:")
+  console.dir(debugReport.unmatchedSample, { depth: null })
+  console.log("=================================================")
 
   return {
     runId,
@@ -485,8 +527,7 @@ export function buildCanonicalResults(
       reserveHolds: mHolds,
       exceptions: mUnmatched + mHolds,
       ignored: ignoredZero.length,
-      validationAssets: validationAssets.length
+      validationAssets: new Set(validationAssets.map(r => r.source)).size
     }
   }
 }
-

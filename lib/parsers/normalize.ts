@@ -1,6 +1,8 @@
 import { ParsedRecord, RecordType } from '../types'
 
 export const TRANSACTION_REFERENCE_FIELDS = [
+  "reference",
+  "ref",
   "transaction_id",
   "transactionid",
   "txn_id",
@@ -17,8 +19,6 @@ export const TRANSACTION_REFERENCE_FIELDS = [
   "chargeid",
   "source_transaction",
   "sourcetransaction",
-  "reference",
-  "ref",
   "id"
 ];
 
@@ -34,7 +34,7 @@ export const BATCH_FIELDS = [
 ];
 
 export const AMOUNT_FIELDS = [
-  "amount", "gross_amount", "grossamount", "net_amount", "netamount",
+  "net_amount", "netamount", "amount", "gross_amount", "grossamount",
   "settlement_amount", "settlementamount", "debit", "credit", "value",
   "payout_amount", "payoutamount", "gross", "net", "paid_amount", "paidamount",
   "bank_credit", "bank_debit", "credit_amount", "debit_amount",
@@ -43,7 +43,7 @@ export const AMOUNT_FIELDS = [
 
 export const DESC_KEYS = [
   "description", "memo", "details", "narrative", "counterparty",
-  "merchant", "payee", "booking_text", "bookingtext"
+  "merchant", "payee", "booking_text", "bookingtext", "vendor_name", "vendorname"
 ]
 
 const DATE_KEYS = ['date', 'settlement_date', 'transaction_date', 'value_date', 'posting_date', 'created_at', 'timestamp', 'txn_date']

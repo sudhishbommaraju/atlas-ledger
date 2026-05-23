@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"C:\\\\Users\\\\srira\\\\OneDrive\\\\Desktop\\\\New folder \\(5\\)\\\\.claude\\\\worktrees\\\\youthful-neumann-7c5ba9\\\\backend\")",
+      "Bash(npm create *)",
+      "Bash(npm install *)"
+    ]
+  }
+}

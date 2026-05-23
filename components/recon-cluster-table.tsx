@@ -49,9 +49,19 @@ function ClusterRow({ cluster, onClick }: { cluster: ReconciliationCluster; onCl
             </span>
             <span className="text-xs text-neutral-400 shrink-0">{cluster.confidence}% conf</span>
             <span className="text-xs text-neutral-400 shrink-0 border-l border-neutral-700 pl-4">{cluster.sourcesPresent.length} sources</span>
-            {cluster.missingSources.length > 0 && (
-              <span className="text-xs text-amber-500/80 shrink-0">Missing: {cluster.missingSources.length}</span>
-            )}
+            {cluster.status === 'unmatched' || cluster.status === 'partial' || cluster.status === 'reserve_hold' || cluster.status === 'eligibility_hold' ? (
+              cluster.failedRules && cluster.failedRules.length > 0 ? (
+                <span className="text-xs text-red-500/80 shrink-0">
+                  {cluster.failedRules.join(', ')}
+                </span>
+              ) : (
+                cluster.missingSources.length > 0 ? (
+                  <span className="text-xs text-amber-500/80 shrink-0">Missing: {cluster.missingSources.length}</span>
+                ) : (
+                  <span className="text-xs text-neutral-500 shrink-0">No candidate found</span>
+                )
+              )
+            ) : null}
             <span className={`text-xs ml-4 shrink-0 px-2 py-0.5 rounded uppercase ${cluster.operationalRisk === 'high' ? 'bg-red-500/20 text-red-400' : cluster.operationalRisk === 'medium' ? 'bg-amber-500/20 text-amber-400' : 'bg-green-500/10 text-green-400'}`}>
               {cluster.operationalRisk} Risk
             </span>

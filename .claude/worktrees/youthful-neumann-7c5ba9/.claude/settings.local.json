@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vite *)",
+      "Bash(powershell -command \"Get-Content 'C:\\\\Users\\\\srira\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-srira-OneDrive-Desktop-New-folder--5---claude-worktrees-youthful-neumann-7c5ba9\\\\52ffdee7-b8df-431e-ba81-0afd7a72ab82\\\\tasks\\\\b0581m07v.output'\")"
+    ]
+  }
+}

@@ -16,8 +16,11 @@ function fmt(n: number, currency?: string): string {
 export default function ReconciliationPage() {
   const { files, results, excludedSheets, hasRun, runReconciliation } = useReconStore()
 
-  const readyFiles = files.filter((f) => f.status === 'parsed' || f.status === 'warning')
-  const canRun = readyFiles.length >= 2 && files.some(f => f.recordCount > 0)
+  const operationalFiles = files.filter((f) => f.sourceType !== 'validation')
+  const validationFiles = files.filter((f) => f.sourceType === 'validation')
+
+  const readyFiles = operationalFiles.filter((f) => f.status === 'parsed' || f.status === 'warning')
+  const canRun = readyFiles.length >= 2 && operationalFiles.some(f => f.recordCount > 0)
 
   return (
     <div className="flex h-full flex-col gap-6 p-8 text-neutral-200">
@@ -73,12 +76,12 @@ export default function ReconciliationPage() {
           
           <div className="rounded-lg border border-neutral-800 bg-neutral-950/70 p-4">
             <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-neutral-500">Source Health</h3>
-            {files.length === 0 ? (
+            {operationalFiles.length === 0 ? (
               <div className="text-sm text-neutral-600">No sources ingested.</div>
             ) : (
               <div className="flex flex-col gap-4">
                 {Object.entries(
-                  files.reduce((acc, f) => {
+                  operationalFiles.reduce((acc, f) => {
                     const key = f.archiveName || 'root'
                     if (!acc[key]) acc[key] = []
                     acc[key].push(f)
@@ -122,6 +125,20 @@ export default function ReconciliationPage() {
                     Excluded {excludedSheets.length} metadata sheets
                   </div>
                 )}
+              </div>
+            )}
+
+            {validationFiles.length > 0 && (
+              <div className="mt-6 border-t border-neutral-800/80 pt-4 font-sans">
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">Validation Assets</h3>
+                <div className="flex flex-col gap-2">
+                  {validationFiles.map(f => (
+                    <div key={f.id} className="flex justify-between text-xs text-neutral-400">
+                      <span className="truncate">{f.name}</span>
+                      <span className="font-mono text-neutral-500">{f.recordCount} rows</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

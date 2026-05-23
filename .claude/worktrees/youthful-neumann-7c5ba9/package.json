@@ -1,0 +1,12 @@
+{
+  "name": "atlas-ledger",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Atlas Ledger v0 — payout decisioning backend",
+  "scripts": {
+    "dev": "cd backend && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "seed": "cd backend && python -m app.services.seed_data",
+    "test": "cd backend && python -m pytest -v",
+    "install:backend": "cd backend && pip install -r requirements.txt"
+  }
+}
