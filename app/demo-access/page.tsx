@@ -17,7 +17,8 @@ export default function DemoAccessPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === process.env.NEXT_PUBLIC_DEMO_PASSWORD) {
+    const correctPassword = process.env.NEXT_PUBLIC_DEMO_PASSWORD || "Atlas2016!";
+    if (password === correctPassword) {
       sessionStorage.setItem("atlas_demo_access", "true");
       window.location.href = "/demo";
     } else {
