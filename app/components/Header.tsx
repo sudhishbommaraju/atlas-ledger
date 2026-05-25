@@ -1,30 +1,89 @@
 'use client';
 
+import Link from 'next/link';
+import { useTheme } from '@/app/providers';
+import { tokens, type Theme } from '@/lib/design-tokens';
+
 export function Header() {
+  const { theme, toggleTheme } = useTheme();
+  const c = tokens.colors[theme as Theme];
+
   return (
-    <div style={{
+    <header style={{
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: '16px 32px',
-      background: '#FFFFFF',
-      borderBottom: '1px solid #E5E7EB',
+      padding: `0 ${tokens.spacing.xl}`,
+      height: tokens.sizes.navHeight,
+      background: c.bg,
+      borderBottom: `1px solid ${c.border}`,
       position: 'fixed',
       top: 0,
       left: 0,
       right: 0,
       zIndex: 100,
-      boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      fontFamily: tokens.fonts.body,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{ fontSize: '24px', fontWeight: 700, color: '#1F6FEB' }}>🔷</div>
-        <div style={{ fontSize: '18px', fontWeight: 700, color: '#111827' }}>Atlas</div>
+      {/* Logo */}
+      <Link href="/" style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        textDecoration: 'none',
+      }}>
+        <span style={{ fontSize: '22px' }}>🔷</span>
+        <span style={{ fontSize: '17px', fontWeight: 700, color: c.text }}>Atlas</span>
+        <span style={{
+          fontSize: '10px',
+          fontWeight: 700,
+          background: c.bgAlt,
+          border: `1px solid ${c.border}`,
+          color: c.textSecondary,
+          padding: '2px 7px',
+          borderRadius: tokens.radii.sm,
+          letterSpacing: '0.04em',
+        }}>
+          DEMO
+        </span>
+      </Link>
+
+      {/* Right controls */}
+      <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+        <Link href="/dashboard/setup" style={{
+          fontSize: '13px',
+          color: c.textSecondary,
+          textDecoration: 'none',
+          fontWeight: 500,
+        }}>
+          Setup
+        </Link>
+        <Link href="/" style={{
+          fontSize: '13px',
+          color: c.textSecondary,
+          textDecoration: 'none',
+          fontWeight: 500,
+        }}>
+          Home
+        </Link>
+        <button
+          onClick={toggleTheme}
+          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          style={{
+            background: c.bgAlt,
+            border: `1px solid ${c.border}`,
+            borderRadius: tokens.radii.sm,
+            padding: '5px 10px',
+            cursor: 'pointer',
+            fontSize: '15px',
+            lineHeight: 1,
+            color: c.text,
+            transition: 'background 0.15s',
+          }}
+        >
+          {theme === 'light' ? '🌙' : '☀️'}
+        </button>
       </div>
-      <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-        <a href="#" style={{ fontSize: '13px', color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>Documentation</a>
-        <a href="#" style={{ fontSize: '13px', color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>Settings</a>
-        <a href="#" style={{ fontSize: '13px', color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>Logout</a>
-      </div>
-    </div>
+    </header>
   );
 }

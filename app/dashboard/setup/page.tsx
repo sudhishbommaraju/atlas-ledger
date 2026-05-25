@@ -1,203 +1,146 @@
 'use client';
 
-import { useState } from 'react';
-import { Header } from '@/app/components/Header';
+import { useRouter } from 'next/navigation';
+import { useTheme } from '@/app/providers';
+import { tokens, type Theme } from '@/lib/design-tokens';
+
+const SYSTEMS = [
+  { icon: '💳', name: 'Stripe',         detail: 'sk_test_****',              sub: 'Test mode · Settlement & payout data' },
+  { icon: '🏦', name: 'Bank (Plaid)',   detail: 'Chase (ending in 4242)',    sub: 'Confirmed balances via Plaid' },
+  { icon: '📊', name: 'ERP (NetSuite)', detail: 'NetSuite',                  sub: 'Reserve amounts & payout eligibility' },
+];
 
 export default function SetupPage() {
-  const [stripeKey, setStripeKey] = useState('');
-  const [stripeStatus, setStripeStatus] = useState('disconnected');
-  const [stripeLoading, setStripeLoading] = useState(false);
+  const { theme } = useTheme();
+  const c = tokens.colors[theme as Theme];
+  const router = useRouter();
 
-  async function testStripe() {
-    setStripeLoading(true);
-    try {
-      const res = await fetch('/api/integrations/stripe/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: stripeKey })
-      });
-      const data = await res.json();
-      setStripeStatus(data.success ? 'connected' : 'failed');
-    } catch (err) {
-      setStripeStatus('failed');
-    }
-    setStripeLoading(false);
+  function handleDisconnect() {
+    localStorage.removeItem('atlas_demo_auth');
+    sessionStorage.removeItem('stripe_connected');
+    router.push('/dashboard/onboarding');
   }
 
   return (
-    <>
-      <Header />
-      <div style={{ marginTop: '60px', padding: '40px 32px', maxWidth: '1000px', margin: '60px auto 0' }}>
-        {/* Title Section */}
-        <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-          <h1 style={{ fontSize: '40px', fontWeight: 700, margin: '0 0 16px 0', color: '#C9D1D9' }}>
-            Connect Your Systems
-          </h1>
-          <p style={{ fontSize: '16px', color: '#8B949E', margin: 0, lineHeight: '1.6', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>
-            Atlas monitors your Stripe, bank, and ERP for payout drift. Your API keys are encrypted and secure.
-          </p>
-        </div>
+    <div style={{ padding: tokens.spacing.xl, maxWidth: '740px', fontFamily: tokens.fonts.body }}>
 
-        {/* Stripe Card */}
-        <div style={{
-          background: '#161B22',
-          border: '1px solid #30363D',
-          borderRadius: '12px',
-          padding: '32px',
-          marginBottom: '24px',
-          transition: 'all 0.2s'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-            <div style={{ fontSize: '28px' }}>💳</div>
-            <h2 style={{ fontSize: '20px', fontWeight: 600, margin: 0, color: '#C9D1D9' }}>Stripe</h2>
+      {/* Page header */}
+      <h1 style={{ fontSize: '28px', fontWeight: 800, margin: '0 0 6px 0', color: c.text, letterSpacing: '-0.4px' }}>
+        Setup Systems
+      </h1>
+      <p style={{ fontSize: '13px', color: c.textSecondary, margin: '0 0 32px 0' }}>
+        Meridian Marketplace · System integration status
+      </p>
+
+      {/* Connected banner */}
+      <div style={{
+        background: theme === 'light' ? '#F0FDF4' : '#071A0F',
+        border: `2px solid ${c.success}`,
+        borderRadius: tokens.radii.xl,
+        padding: '18px 22px',
+        display: 'flex',
+        gap: '14px',
+        alignItems: 'center',
+        marginBottom: '24px',
+      }}>
+        <span style={{ fontSize: '26px' }}>✅</span>
+        <div>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: c.success }}>
+            Your Systems Are Connected
           </div>
-          
-          <p style={{ color: '#8B949E', fontSize: '14px', lineHeight: '1.6', marginBottom: '20px' }}>
-            Read your payout settlements and balance in real time from Stripe.
-          </p>
-
-          <div style={{ background: '#0D1117', border: '1px solid #30363D', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
-            <p style={{ fontSize: '12px', color: '#6E7681', margin: '0 0 8px 0', fontWeight: 500 }}>How to get your API key:</p>
-            <ol style={{ fontSize: '12px', color: '#8B949E', margin: 0, paddingLeft: '20px' }}>
-              <li>Go to <a href="https://dashboard.stripe.com/test/apikeys" target="_blank" style={{ color: '#79c0ff' }}>stripe.com/developers</a></li>
-              <li>Click "API Keys"</li>
-              <li>Copy your Secret Key (sk_test_...)</li>
-            </ol>
-          </div>
-
-          <input
-            type="password"
-            placeholder="sk_test_..."
-            value={stripeKey}
-            onChange={(e) => setStripeKey(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              background: '#0D1117',
-              border: '1px solid #30363D',
-              borderRadius: '8px',
-              color: '#C9D1D9',
-              fontSize: '13px',
-              marginBottom: '16px',
-              boxSizing: 'border-box',
-              transition: 'border 0.2s'
-            }}
-            onFocus={(e) => e.target.style.borderColor = '#1F6FEB'}
-            onBlur={(e) => e.target.style.borderColor = '#30363D'}
-          />
-
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-            <button
-              onClick={testStripe}
-              disabled={stripeLoading}
-              style={{
-                padding: '10px 20px',
-                background: stripeStatus === 'connected' ? '#1D9E75' : '#1F6FEB',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: stripeLoading ? 'wait' : 'pointer',
-                fontWeight: 500,
-                fontSize: '13px',
-                transition: 'all 0.2s'
-              }}
-            >
-              {stripeLoading ? 'Testing...' : stripeStatus === 'connected' ? '✓ Connected' : 'Test Connection'}
-            </button>
-            <a href="https://stripe.com/docs/api" target="_blank" style={{
-              padding: '10px 20px',
-              background: 'transparent',
-              color: '#79c0ff',
-              border: '1px solid #30363D',
-              borderRadius: '6px',
-              textDecoration: 'none',
-              fontWeight: 500,
-              fontSize: '13px',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center'
-            }}>
-              View Docs →
-            </a>
-          </div>
-
-          <div style={{ fontSize: '12px', color: stripeStatus === 'connected' ? '#1D9E75' : stripeStatus === 'failed' ? '#DA3633' : '#6E7681' }}>
-            {stripeStatus === 'connected' && '✓ Connected to Stripe'}
-            {stripeStatus === 'failed' && '✗ Failed to connect'}
-            {stripeStatus === 'disconnected' && 'Not yet connected'}
+          <div style={{ fontSize: '13px', color: c.textSecondary, marginTop: '3px' }}>
+            Atlas is monitoring your operations in real time
           </div>
         </div>
-
-        {/* Bank Card (Coming Soon) */}
-        <div style={{
-          background: '#161B22',
-          border: '1px solid #30363D',
-          borderRadius: '12px',
-          padding: '32px',
-          marginBottom: '24px',
-          opacity: 0.6
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ fontSize: '28px' }}>🏦</div>
-              <h2 style={{ fontSize: '20px', fontWeight: 600, margin: 0, color: '#C9D1D9' }}>Bank (Plaid)</h2>
-            </div>
-            <div style={{ background: '#BA7517', color: '#fff', padding: '4px 12px', borderRadius: '4px', fontSize: '11px', fontWeight: 600 }}>Coming Soon</div>
-          </div>
-          <p style={{ color: '#8B949E', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
-            Connect your bank to read confirmed balances. Plaid securely handles your login.
-          </p>
-        </div>
-
-        {/* ERP Card (Coming Soon) */}
-        <div style={{
-          background: '#161B22',
-          border: '1px solid #30363D',
-          borderRadius: '12px',
-          padding: '32px',
-          marginBottom: '40px',
-          opacity: 0.6
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ fontSize: '28px' }}>📊</div>
-              <h2 style={{ fontSize: '20px', fontWeight: 600, margin: 0, color: '#C9D1D9' }}>ERP (NetSuite)</h2>
-            </div>
-            <div style={{ background: '#BA7517', color: '#fff', padding: '4px 12px', borderRadius: '4px', fontSize: '11px', fontWeight: 600 }}>Coming Soon</div>
-          </div>
-          <p style={{ color: '#8B949E', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
-            Connect your ERP to read balances and payout eligibility.
-          </p>
-        </div>
-
-        {/* Status Summary */}
-        {stripeStatus === 'connected' && (
-          <div style={{
-            background: '#161B22',
-            border: '2px solid #1D9E75',
-            borderRadius: '12px',
-            padding: '32px',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '40px', marginBottom: '16px' }}>✓</div>
-            <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#1D9E75', marginBottom: '8px' }}>Atlas is Ready</h3>
-            <p style={{ color: '#8B949E', marginBottom: '24px' }}>Stripe is connected. Atlas is monitoring your operations.</p>
-            <a href="/dashboard" style={{
-              display: 'inline-block',
-              padding: '12px 32px',
-              background: '#1F6FEB',
-              color: '#fff',
-              textDecoration: 'none',
-              borderRadius: '6px',
-              fontWeight: 600,
-              fontSize: '14px',
-              cursor: 'pointer'
-            }}>
-              Go to Dashboard →
-            </a>
-          </div>
-        )}
       </div>
-    </>
+
+      {/* System cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+        {SYSTEMS.map((s) => (
+          <div key={s.name} style={{
+            background: c.cardBg,
+            border: `1px solid ${c.cardBorder}`,
+            borderLeft: `4px solid ${c.success}`,
+            borderRadius: tokens.radii.lg,
+            padding: '18px 22px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+          }}>
+            <span style={{ fontSize: '28px', flexShrink: 0 }}>{s.icon}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: c.text, marginBottom: '3px' }}>{s.name}</div>
+              <div style={{ fontSize: '12px', color: c.textSecondary }}>{s.sub}</div>
+            </div>
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <div style={{
+                fontSize: '13px',
+                fontFamily: tokens.fonts.mono,
+                color: c.text,
+                fontWeight: 600,
+                marginBottom: '4px',
+              }}>
+                {s.detail}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', justifyContent: 'flex-end' }}>
+                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: c.success, display: 'inline-block' }} />
+                <span style={{ fontSize: '12px', color: c.success, fontWeight: 600 }}>Live</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Live monitoring pulse */}
+      <div style={{
+        background: c.bgAlt,
+        border: `1px solid ${c.border}`,
+        borderRadius: tokens.radii.lg,
+        padding: '18px 22px',
+        display: 'flex',
+        gap: '14px',
+        alignItems: 'center',
+        marginBottom: '28px',
+      }}>
+        <span style={{
+          width: '10px',
+          height: '10px',
+          borderRadius: '50%',
+          background: c.success,
+          flexShrink: 0,
+          boxShadow: `0 0 0 4px ${c.success}28`,
+          display: 'inline-block',
+        }} />
+        <div>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: c.text }}>
+            Atlas is monitoring your operations in real time
+          </div>
+          <div style={{ fontSize: '12px', color: c.textSecondary, marginTop: '3px' }}>
+            Drift detection active · Sub-second latency · 3 systems connected
+          </div>
+        </div>
+      </div>
+
+      {/* Disconnect */}
+      <button
+        onClick={handleDisconnect}
+        style={{
+          background: 'transparent',
+          color: c.danger,
+          border: `1px solid ${c.danger}`,
+          padding: '10px 24px',
+          borderRadius: tokens.radii.md,
+          fontSize: '13px',
+          fontWeight: 600,
+          cursor: 'pointer',
+          fontFamily: tokens.fonts.body,
+          transition: 'background 0.15s',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = `${c.danger}12`)}
+        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+      >
+        Disconnect All Systems
+      </button>
+    </div>
   );
 }

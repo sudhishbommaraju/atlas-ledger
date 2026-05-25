@@ -71,6 +71,37 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+body { background: var(--canvas); color: var(--ink); }
+
+/* ── Light mode CSS variable overrides ── */
+[data-theme="light"] {
+  --canvas:            #FFFFFF;
+  --canvas-soft:       #F9FAFB;
+  --canvas-card:       #FFFFFF;
+  --canvas-mid:        #D1D5DB;
+  --hairline:          #E5E7EB;
+  --hairline-t:        rgba(0,0,0,0.12);
+  --ink:               #111827;
+  --ink-hover:         #1F2937;
+  --body:              #374151;
+  --body-mid:          #6B7280;
+  --mute:              #9CA3AF;
+  --color-bg:          #FFFFFF;
+  --color-surface:     #F9FAFB;
+  --color-surface-2:   #F3F4F6;
+  --color-border:      #E5E7EB;
+  --color-border-muted:#F3F4F6;
+  --color-text-primary:#111827;
+  --color-text-secondary:#6B7280;
+  --color-text-tertiary:#9CA3AF;
+  --bg-base:           #FFFFFF;
+  --bg-surface:        #F9FAFB;
+  --bg-card:           #FFFFFF;
+  --text-primary:      #111827;
+  --text-secondary:    #6B7280;
+  --border-default:    #E5E7EB;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTheme } from '@/app/providers'
 
 const AtlasMark = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-label="Atlas">
@@ -22,6 +23,7 @@ export default function AtlasNav() {
   const navRef = useRef<HTMLElement>(null)
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
+  const { theme, toggleTheme } = useTheme()
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -85,8 +87,26 @@ export default function AtlasNav() {
           })}
         </div>
 
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          style={{
+            background: 'transparent',
+            border: '1px solid var(--hairline-t)',
+            borderRadius: '9999px',
+            padding: '6px 12px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            lineHeight: 1,
+            color: 'var(--ink)',
+          }}
+          aria-label="Toggle theme"
+        >
+          {theme === 'light' ? '🌙' : '☀️'}
+        </button>
+
         {/* CTA */}
-        <Link href="/demo-access" className="atlas-btn" style={{ fontSize: 14 }}>
+        <Link href="/auth/password" className="atlas-btn" style={{ fontSize: 14 }}>
           View Live Demo
         </Link>
       </div>
