@@ -9,9 +9,15 @@ export default function DashboardPage() {
   const [drifts, setDrifts] = useState<any[]>([]);
   const [state, setState] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [connectedSystems, setConnectedSystems] = useState<string[]>([]);
   const { theme } = useTheme();
   const c = tokens.colors[theme as Theme];
   const company_id = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem('connected_systems');
+    if (stored) setConnectedSystems(JSON.parse(stored));
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -67,9 +73,22 @@ export default function DashboardPage() {
           <h1 style={{ fontSize: '28px', fontWeight: 800, margin: '0 0 6px 0', color: c.text, letterSpacing: '-0.4px' }}>
             Meridian Marketplace
           </h1>
-          <p style={{ fontSize: '13px', color: c.textSecondary, margin: 0 }}>
+          <p style={{ fontSize: '13px', color: c.textSecondary, margin: '0 0 10px 0' }}>
             Continuous operational monitoring — Tier 1: Observe &amp; Alert
           </p>
+          {connectedSystems.length > 0 && (
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {connectedSystems.includes('stripe') && (
+                <span style={{ fontSize: '11px', fontWeight: 700, background: `${c.success}18`, color: c.success, border: `1px solid ${c.success}40`, padding: '2px 8px', borderRadius: '4px' }}>✓ Stripe</span>
+              )}
+              {connectedSystems.includes('bank') && (
+                <span style={{ fontSize: '11px', fontWeight: 700, background: `${c.success}18`, color: c.success, border: `1px solid ${c.success}40`, padding: '2px 8px', borderRadius: '4px' }}>✓ Bank</span>
+              )}
+              {connectedSystems.includes('erp') && (
+                <span style={{ fontSize: '11px', fontWeight: 700, background: `${c.success}18`, color: c.success, border: `1px solid ${c.success}40`, padding: '2px 8px', borderRadius: '4px' }}>✓ ERP</span>
+              )}
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <span style={{

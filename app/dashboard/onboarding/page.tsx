@@ -19,12 +19,11 @@ export default function OnboardingPage() {
   const [bankState, setBankState] = useState<SystemState>('idle');
   const [erpState, setErpState] = useState<SystemState>('idle');
 
-  const allConnected =
-    stripeState === 'connected' && bankState === 'connected' && erpState === 'connected';
-
   const connectedCount = [stripeState, bankState, erpState].filter(
     (s) => s === 'connected'
   ).length;
+
+  const canProceed = connectedCount >= 1;
 
   async function testStripe() {
     if (!stripeKey.trim()) {
@@ -175,7 +174,7 @@ export default function OnboardingPage() {
         marginBottom: '52px',
       }}>
         {[
-          { label: 'Connect Systems', active: true, done: allConnected },
+          { label: 'Connect Systems', active: true, done: canProceed },
           { label: 'Review Dashboard', active: false, done: false },
           { label: 'Audit Trail', active: false, done: false },
         ].map((step, i) => (
@@ -359,8 +358,9 @@ export default function OnboardingPage() {
         }}>
           <span style={{ fontSize: '13px', color: c.textSecondary }}>
             {connectedCount} of 3 systems connected
+            {connectedCount === 0 && ' — connect at least 1 to proceed'}
           </span>
-          {allConnected && (
+          {connectedCount === 3 && (
             <span style={{ fontSize: '13px', color: c.success, fontWeight: 600 }}>
               ✓ All systems ready
             </span>
@@ -383,10 +383,17 @@ export default function OnboardingPage() {
       </div>
 
       {/* ── CTA ──────────────────────────────────────────────── */}
-      {allConnected && (
+      {canProceed && (
         <div style={{ textAlign: 'center' }}>
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => {
+              const systems = [];
+              if (stripeState === 'connected') systems.push('stripe');
+              if (bankState === 'connected') systems.push('bank');
+              if (erpState === 'connected') systems.push('erp');
+              sessionStorage.setItem('connected_systems', JSON.stringify(systems));
+              router.push('/dashboard');
+            }}
             style={{
               ...btnBase,
               width: 'auto',
@@ -402,6 +409,9 @@ export default function OnboardingPage() {
           >
             Continue to Dashboard →
           </button>
+          <p style={{ fontSize: '12px', color: c.textTertiary, marginTop: '12px' }}>
+            You can add more systems anytime from the Setup page
+          </p>
         </div>
       )}
     </div>
