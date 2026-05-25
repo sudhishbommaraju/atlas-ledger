@@ -16,7 +16,6 @@ const NAV_LINKS = [
   { label: 'What We Do', href: '/' },
   { label: 'Security', href: '/security' },
   { label: 'FAQ', href: '/faq' },
-  { label: 'Waitlist', href: '/waitlist' },
 ]
 
 export default function AtlasNav() {
@@ -87,28 +86,79 @@ export default function AtlasNav() {
           })}
         </div>
 
-        {/* Theme toggle */}
-        <button
-          onClick={toggleTheme}
-          style={{
-            background: 'transparent',
-            border: '1px solid var(--hairline-t)',
-            borderRadius: '9999px',
-            padding: '6px 12px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            lineHeight: 1,
-            color: 'var(--ink)',
-          }}
-          aria-label="Toggle theme"
-        >
-          {theme === 'light' ? '🌙' : '☀️'}
-        </button>
+        {/* Right group: theme toggle + CTA buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={toggleTheme}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--hairline-t)',
+              borderRadius: '9999px',
+              padding: '6px 12px',
+              cursor: 'pointer',
+              fontSize: '15px',
+              lineHeight: 1,
+              color: 'var(--ink)',
+            }}
+            aria-label="Toggle theme"
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
 
-        {/* CTA */}
-        <Link href="/auth/password" className="atlas-btn" style={{ fontSize: 14 }}>
-          View Live Demo
-        </Link>
+          {/* Waitlist — outlined */}
+          <Link
+            href="/waitlist"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '7px 18px',
+              background: 'transparent',
+              border: '1px solid #1F6FEB',
+              color: '#1F6FEB',
+              borderRadius: '6px',
+              textDecoration: 'none',
+              fontSize: 14,
+              fontWeight: 600,
+              fontFamily: 'var(--font-display)',
+              whiteSpace: 'nowrap',
+              transition: 'background .15s, color .15s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = '#1F6FEB'
+              e.currentTarget.style.color = '#fff'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = '#1F6FEB'
+            }}
+          >
+            Waitlist
+          </Link>
+
+          {/* View Live Demo — solid */}
+          <Link
+            href="/auth/password"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '7px 18px',
+              background: '#1F6FEB',
+              color: '#fff',
+              border: '1px solid #1F6FEB',
+              borderRadius: '6px',
+              textDecoration: 'none',
+              fontSize: 14,
+              fontWeight: 600,
+              fontFamily: 'var(--font-display)',
+              whiteSpace: 'nowrap',
+              transition: 'background .15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#1556D6' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#1F6FEB' }}
+          >
+            View Live Demo
+          </Link>
+        </div>
       </div>
     </nav>
   )
