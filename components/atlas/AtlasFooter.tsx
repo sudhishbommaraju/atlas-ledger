@@ -15,7 +15,7 @@ const COLS = [
       { l: 'What We Do', h: '/' },
       { l: 'Security', h: '/security' },
       { l: 'FAQ', h: '/faq' },
-      { l: 'Join waitlist', h: '/waitlist' },
+      { l: 'Live Demo', h: '/auth/password' },
     ],
   },
   {
@@ -24,16 +24,21 @@ const COLS = [
       { l: 'About', h: '/' },
       { l: 'Careers', h: '/' },
       { l: 'Press', h: '/' },
-      { l: 'Contact', h: '/waitlist' },
+      { l: 'Join Waitlist', h: '/waitlist' },
+      { l: 'Contact', h: 'mailto:hello@atlas.ai' },
+      { l: 'Twitter', h: 'https://twitter.com/getAtlas' },
+      { l: 'LinkedIn', h: 'https://linkedin.com/company/atlas-ai' },
     ],
   },
   {
     heading: 'LEGAL',
     links: [
-      { l: 'Privacy', h: '#' },
-      { l: 'Terms', h: '#' },
+      { l: 'Terms of Service', h: '/legal/terms-of-service' },
+      { l: 'Privacy Policy', h: '/legal/privacy-policy' },
       { l: 'DPA', h: '#' },
       { l: 'Sub-processors', h: '#' },
+      { l: 'Legal Inquiry', h: 'mailto:legal@atlas.ai' },
+      { l: 'Privacy Questions', h: 'mailto:privacy@atlas.ai' },
     ],
   },
 ]
@@ -94,9 +99,13 @@ export default function AtlasFooter() {
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--body-mid)' }}>
             © {new Date().getFullYear()} ATLAS INC. · MADE WITH ENGINEERED RESTRAINT
           </span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--body-mid)' }}>
-            v2.4.1 · BUILD a7f3c
-          </span>
+          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+            <Link href="mailto:security@atlas.ai" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--body-mid)', textDecoration: 'none' }}>Report Security Issue</Link>
+            <Link href="mailto:legal@atlas.ai" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--body-mid)', textDecoration: 'none' }}>Legal Contact</Link>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--body-mid)' }}>
+              v2.4.1 · BUILD a7f3c
+            </span>
+          </div>
         </div>
       </div>
     </footer>
