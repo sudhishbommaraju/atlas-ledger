@@ -8,17 +8,20 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Atlas Ledger',
-  description: 'Payout operations platform for financial certainty',
+  title: 'Atlas — Continuous Operational Control Layer',
+  description: 'Atlas connects to your existing financial systems and monitors them continuously for drift, giving you certainty before capital moves.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geistMono.variable}`}>
+    <html lang="en" className={geistMono.variable}>
       <head>
-        <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Geist+Mono:wght@400;500&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body className="antialiased" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)', minHeight: '100vh' }}>
+      <body style={{ background: '#0a0a0a', color: '#ffffff', fontFamily: '"Inter", system-ui, -apple-system, sans-serif', fontWeight: 400 }}>
         {children}
       </body>
     </html>

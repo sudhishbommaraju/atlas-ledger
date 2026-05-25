@@ -1,5 +1,10 @@
 import { createServerClient } from '@/lib/insforge/server';
-import { recomputeState } from '@/lib/state/canonical';
+
+// No-op state recompute for V3 demo build.
+// Canonical state is seeded via migration; real recompute removed with lib/state.
+async function recomputeState(_companyId: string): Promise<void> {
+  // intentionally empty
+}
 
 export async function processStripeEvent(companyId: string, eventId: string, type: string, amount: number, currency: string, rawPayload: any) {
   const insforge = createServerClient();

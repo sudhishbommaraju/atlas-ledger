@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import WhatWeDo from '@/components/atlas/WhatWeDo'
 
 export default function Home() {
-  redirect('/dashboard');
+  return <WhatWeDo />
 }

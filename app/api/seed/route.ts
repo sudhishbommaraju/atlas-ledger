@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
-import { seedDemoData } from '@/lib/seed/demo';
 
-export async function POST(req: Request) {
-  try {
-    const result = await seedDemoData();
-    return NextResponse.json(result);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+// Seed endpoint removed in V3 rebuild.
+// Data is seeded via the InsForge migrations.
+export async function POST() {
+  return NextResponse.json({ message: 'Seed not available in this version' }, { status: 410 });
 }
