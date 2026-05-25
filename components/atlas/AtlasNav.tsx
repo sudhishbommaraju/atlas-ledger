@@ -4,6 +4,7 @@ import { gsap } from 'gsap'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTheme } from '@/app/providers'
+import { tokens, type Theme } from '@/lib/design-tokens'
 
 const AtlasMark = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-label="Atlas">
@@ -23,6 +24,7 @@ export default function AtlasNav() {
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
   const { theme, toggleTheme } = useTheme()
+  const c = tokens.colors[theme as Theme]
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -113,8 +115,8 @@ export default function AtlasNav() {
               alignItems: 'center',
               padding: '7px 18px',
               background: 'transparent',
-              border: '1px solid #1F6FEB',
-              color: '#1F6FEB',
+              border: `1px solid ${c.primary}`,
+              color: c.primary,
               borderRadius: '6px',
               textDecoration: 'none',
               fontSize: 14,
@@ -124,12 +126,12 @@ export default function AtlasNav() {
               transition: 'background .15s, color .15s',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = '#1F6FEB'
+              e.currentTarget.style.background = c.primary
               e.currentTarget.style.color = '#fff'
             }}
             onMouseLeave={e => {
               e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = '#1F6FEB'
+              e.currentTarget.style.color = c.primary
             }}
           >
             Waitlist
@@ -142,9 +144,9 @@ export default function AtlasNav() {
               display: 'inline-flex',
               alignItems: 'center',
               padding: '7px 18px',
-              background: '#1F6FEB',
+              background: c.primary,
               color: '#fff',
-              border: '1px solid #1F6FEB',
+              border: `1px solid ${c.primary}`,
               borderRadius: '6px',
               textDecoration: 'none',
               fontSize: 14,
@@ -153,8 +155,8 @@ export default function AtlasNav() {
               whiteSpace: 'nowrap',
               transition: 'background .15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#1556D6' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#1F6FEB' }}
+            onMouseEnter={e => { e.currentTarget.style.background = c.primaryHover }}
+            onMouseLeave={e => { e.currentTarget.style.background = c.primary }}
           >
             View Live Demo
           </Link>
