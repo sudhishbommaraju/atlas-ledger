@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from './providers'
+import { Footer } from './components/Footer'
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body style={{ fontFamily: '"Inter", system-ui, -apple-system, sans-serif', fontWeight: 400 }}>
         <ThemeProvider>
           {children}
+          <Footer />
         </ThemeProvider>
       </body>
     </html>
