@@ -7,7 +7,7 @@ import DashMockup from '@/components/atlas/DashMockup'
 import { TickerBar, WhatInteractiveDemo, WhatCodeBlock } from '@/components/atlas/WhatWeDo'
 import Link from 'next/link'
 
-const DEMO_PASSWORD = 'atlas2026'
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || 'Atlas2016!'
 
 function LockIcon({ size = 20 }: { size?: number }) {
   return (
@@ -84,7 +84,7 @@ function DemoGate({ onUnlock }: { onUnlock: () => void }) {
     if (state === 'checking' || state === 'success') return
     setState('checking')
     setTimeout(() => {
-      if (val.trim().toLowerCase() === DEMO_PASSWORD) {
+      if (val.trim().toLowerCase() === DEMO_PASSWORD.toLowerCase()) {
         setState('success')
         setTimeout(() => onUnlock(), 700)
       } else {

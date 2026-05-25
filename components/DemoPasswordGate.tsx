@@ -10,7 +10,7 @@ export default function DemoPasswordGate({ children }: { children: React.ReactNo
 
   useEffect(() => {
     const auth = localStorage.getItem("atlas_demo_auth");
-    if (auth === expectedPassword) {
+    if (auth && auth.trim().toLowerCase() === expectedPassword.toLowerCase()) {
       setIsAuthorized(true);
     } else {
       setIsAuthorized(false);
@@ -19,7 +19,7 @@ export default function DemoPasswordGate({ children }: { children: React.ReactNo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === expectedPassword) {
+    if (password.trim().toLowerCase() === expectedPassword.toLowerCase()) {
       localStorage.setItem("atlas_demo_auth", password);
       setIsAuthorized(true);
       setError("");
