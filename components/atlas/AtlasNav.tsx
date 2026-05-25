@@ -107,58 +107,59 @@ export default function AtlasNav() {
             {theme === 'light' ? '🌙' : '☀️'}
           </button>
 
-          {/* Waitlist — outlined */}
+          {/* Waitlist — solid */}
           <Link
             href="/waitlist"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              padding: '7px 18px',
-              background: 'transparent',
-              border: `1px solid ${c.primary}`,
-              color: c.primary,
-              borderRadius: '6px',
+              gap: '4px',
+              padding: '5px 12px',
+              background: 'var(--ink)',
+              color: 'var(--canvas)',
+              border: '1px solid var(--ink)',
+              borderRadius: '9999px',
               textDecoration: 'none',
-              fontSize: 14,
-              fontWeight: 600,
+              fontSize: 13,
+              fontWeight: 500,
               fontFamily: 'var(--font-display)',
               whiteSpace: 'nowrap',
-              transition: 'background .15s, color .15s',
+              transition: 'opacity .15s ease',
             }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = c.primary
-              e.currentTarget.style.color = '#fff'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = c.primary
-            }}
+            onMouseEnter={e => { e.currentTarget.style.opacity = '0.9' }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
           >
-            Waitlist
+            Waitlist <span aria-hidden="true">→</span>
           </Link>
 
-          {/* View Live Demo — solid */}
+          {/* View Live Demo — outlined */}
           <Link
             href="/auth/password"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              padding: '7px 18px',
-              background: c.primary,
-              color: '#fff',
-              border: `1px solid ${c.primary}`,
-              borderRadius: '6px',
+              padding: '5px 12px',
+              background: 'transparent',
+              color: 'var(--ink)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '9999px',
               textDecoration: 'none',
-              fontSize: 14,
-              fontWeight: 600,
+              fontSize: 13,
+              fontWeight: 500,
               fontFamily: 'var(--font-display)',
               whiteSpace: 'nowrap',
-              transition: 'background .15s',
+              transition: 'background .15s ease, border-color .15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = c.primaryHover }}
-            onMouseLeave={e => { e.currentTarget.style.background = c.primary }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
+            }}
           >
-            View Live Demo
+            View live demo
           </Link>
         </div>
       </div>
