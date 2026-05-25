@@ -3,13 +3,19 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/app/providers';
-import { tokens, type Theme } from '@/lib/design-tokens';
+import { tokens } from '@/lib/design-tokens';
 
 type SystemState = 'idle' | 'loading' | 'connected' | 'error';
 
+const AtlasMark = ({ width = 24, height = 24 }: { width?: number; height?: number }) => (
+  <svg width={width} height={height} viewBox="0 0 24 24" fill="none" aria-label="Atlas">
+    <path d="M12 2L1 22h22L12 2z" fill="var(--ink)" />
+    <rect x="7.5" y="14.5" width="9" height="2.5" fill="var(--canvas)" />
+  </svg>
+);
+
 export default function OnboardingPage() {
   const { theme } = useTheme();
-  const c = tokens.colors[theme as Theme];
   const router = useRouter();
 
   const [stripeKey, setStripeKey] = useState('');
@@ -62,10 +68,10 @@ export default function OnboardingPage() {
     return (
       <div style={{
         padding: '12px 16px',
-        background: `${c.success}18`,
-        border: `1px solid ${c.success}50`,
-        borderRadius: tokens.radii.md,
-        color: c.success,
+        background: 'rgba(95, 200, 143, 0.1)',
+        border: '1px solid rgba(95, 200, 143, 0.35)',
+        borderRadius: '6px',
+        color: 'var(--ok)',
         fontSize: '14px',
         fontWeight: 600,
         textAlign: 'center',
@@ -87,27 +93,27 @@ export default function OnboardingPage() {
   }) {
     return (
       <div style={{
-        background: c.cardBg,
-        border: `2px solid ${connected ? c.success : c.cardBorder}`,
+        background: 'var(--canvas-card)',
+        border: `2px solid ${connected ? 'var(--ok)' : 'var(--hairline)'}`,
         borderRadius: tokens.radii.xl,
         padding: tokens.spacing.xl,
         transition: 'border-color 0.25s, box-shadow 0.25s',
         boxShadow: connected
-          ? `0 0 0 4px ${c.success}12`
-          : '0 1px 4px rgba(0,0,0,0.05)',
+          ? '0 0 0 4px rgba(95, 200, 143, 0.15)'
+          : '0 4px 20px rgba(0,0,0,0.15)',
       }}>
         <div style={{ fontSize: '40px', marginBottom: '12px' }}>{icon}</div>
         <h3 style={{
           fontSize: '18px',
           fontWeight: 700,
-          color: c.text,
+          color: 'var(--ink)',
           margin: '0 0 8px 0',
         }}>
           {title}
         </h3>
         <p style={{
           fontSize: '13px',
-          color: c.textSecondary,
+          color: 'var(--body-mid)',
           lineHeight: '1.6',
           margin: `0 0 ${tokens.spacing.lg} 0`,
         }}>
@@ -127,24 +133,26 @@ export default function OnboardingPage() {
     fontWeight: 600,
     cursor: 'pointer',
     transition: 'opacity 0.15s',
-    fontFamily: tokens.fonts.body,
+    fontFamily: 'var(--font-display)',
   };
 
   return (
     <div style={{
-      background: c.bg,
-      color: c.text,
+      background: 'var(--canvas)',
+      color: 'var(--ink)',
       minHeight: '100vh',
       padding: '56px 24px 80px',
-      fontFamily: tokens.fonts.body,
+      fontFamily: 'var(--font-display)',
     }}>
       {/* ── Hero ─────────────────────────────────────────────── */}
       <div style={{ textAlign: 'center', marginBottom: '52px' }}>
-        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔷</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+          <AtlasMark width={32} height={32} />
+        </div>
         <h1 style={{
           fontSize: '40px',
           fontWeight: 800,
-          color: c.text,
+          color: 'var(--ink)',
           margin: '0 0 16px 0',
           letterSpacing: '-0.8px',
           lineHeight: 1.1,
@@ -153,13 +161,13 @@ export default function OnboardingPage() {
         </h1>
         <p style={{
           fontSize: '16px',
-          color: c.textSecondary,
+          color: 'var(--body-mid)',
           maxWidth: '520px',
           margin: '0 auto',
           lineHeight: '1.6',
         }}>
           This is a live demo of{' '}
-          <strong style={{ color: c.text }}>Meridian Marketplace</strong>.
+          <strong style={{ color: 'var(--ink)' }}>Meridian Marketplace</strong>.
           <br />
           Connect your systems and watch Atlas detect payout drift in real time.
         </p>
@@ -183,8 +191,9 @@ export default function OnboardingPage() {
               width: '30px',
               height: '30px',
               borderRadius: '50%',
-              background: step.done ? c.success : step.active ? c.primary : c.border,
-              color: step.active || step.done ? '#fff' : c.textSecondary,
+              background: step.done ? 'var(--ok)' : step.active ? 'var(--ink)' : 'var(--canvas-soft)',
+              color: step.done ? 'var(--canvas)' : step.active ? 'var(--canvas)' : 'var(--mute)',
+              border: `1px solid ${step.done ? 'var(--ok)' : step.active ? 'var(--ink)' : 'var(--hairline)'}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -197,13 +206,13 @@ export default function OnboardingPage() {
             <span style={{
               fontSize: '13px',
               fontWeight: step.active ? 600 : 400,
-              color: step.active ? c.text : c.textSecondary,
+              color: step.active ? 'var(--ink)' : 'var(--mute)',
               whiteSpace: 'nowrap',
             }}>
               {step.label}
             </span>
             {i < 2 && (
-              <div style={{ width: '40px', height: '1px', background: c.border, flexShrink: 0 }} />
+              <div style={{ width: '40px', height: '1px', background: 'var(--hairline)', flexShrink: 0 }} />
             )}
           </div>
         ))}
@@ -239,24 +248,24 @@ export default function OnboardingPage() {
                 style={{
                   width: '100%',
                   padding: '10px 14px',
-                  background: c.bgAlt,
-                  border: `1px solid ${stripeState === 'error' ? c.danger : c.border}`,
+                  background: 'var(--canvas-soft)',
+                  border: `1px solid ${stripeState === 'error' ? 'var(--drift)' : 'var(--hairline)'}`,
                   borderRadius: tokens.radii.md,
-                  color: c.text,
+                  color: 'var(--ink)',
                   fontSize: '13px',
-                  fontFamily: tokens.fonts.mono,
+                  fontFamily: 'var(--font-mono)',
                   boxSizing: 'border-box',
                   marginBottom: '10px',
                   outline: 'none',
                   transition: 'border-color 0.15s',
                 }}
-                onFocus={(e) => (e.target.style.borderColor = c.primary)}
-                onBlur={(e) => (e.target.style.borderColor = stripeState === 'error' ? c.danger : c.border)}
+                onFocus={(e) => (e.target.style.borderColor = stripeState === 'error' ? 'var(--drift)' : 'var(--ink)')}
+                onBlur={(e) => (e.target.style.borderColor = stripeState === 'error' ? 'var(--drift)' : 'var(--hairline)')}
               />
               {stripeError && (
                 <div style={{
                   fontSize: '12px',
-                  color: c.danger,
+                  color: 'var(--drift)',
                   marginBottom: '10px',
                   display: 'flex',
                   alignItems: 'center',
@@ -270,8 +279,8 @@ export default function OnboardingPage() {
                 disabled={stripeState === 'loading'}
                 style={{
                   ...btnBase,
-                  background: stripeState === 'loading' ? c.border : c.primary,
-                  color: stripeState === 'loading' ? c.textSecondary : '#fff',
+                  background: stripeState === 'loading' ? 'var(--hairline)' : 'var(--ink)',
+                  color: stripeState === 'loading' ? 'var(--mute)' : 'var(--canvas)',
                   cursor: stripeState === 'loading' ? 'default' : 'pointer',
                 }}
               >
@@ -279,7 +288,7 @@ export default function OnboardingPage() {
               </button>
               <div style={{
                 fontSize: '11px',
-                color: c.textTertiary,
+                color: 'var(--mute)',
                 marginTop: '10px',
                 textAlign: 'center',
               }}>
@@ -288,7 +297,7 @@ export default function OnboardingPage() {
                   href="https://dashboard.stripe.com/test/apikeys"
                   target="_blank"
                   rel="noreferrer"
-                  style={{ color: c.primary, textDecoration: 'none' }}
+                  style={{ color: 'var(--ink)', textDecoration: 'underline' }}
                 >
                   Get one at stripe.com →
                 </a>
@@ -312,8 +321,8 @@ export default function OnboardingPage() {
               disabled={bankState === 'loading'}
               style={{
                 ...btnBase,
-                background: bankState === 'loading' ? c.border : c.primary,
-                color: bankState === 'loading' ? c.textSecondary : '#fff',
+                background: bankState === 'loading' ? 'var(--hairline)' : 'var(--ink)',
+                color: bankState === 'loading' ? 'var(--mute)' : 'var(--canvas)',
                 cursor: bankState === 'loading' ? 'default' : 'pointer',
               }}
             >
@@ -337,8 +346,8 @@ export default function OnboardingPage() {
               disabled={erpState === 'loading'}
               style={{
                 ...btnBase,
-                background: erpState === 'loading' ? c.border : c.primary,
-                color: erpState === 'loading' ? c.textSecondary : '#fff',
+                background: erpState === 'loading' ? 'var(--hairline)' : 'var(--ink)',
+                color: erpState === 'loading' ? 'var(--mute)' : 'var(--canvas)',
                 cursor: erpState === 'loading' ? 'default' : 'pointer',
               }}
             >
@@ -356,26 +365,26 @@ export default function OnboardingPage() {
           alignItems: 'center',
           marginBottom: '8px',
         }}>
-          <span style={{ fontSize: '13px', color: c.textSecondary }}>
+          <span style={{ fontSize: '13px', color: 'var(--body-mid)' }}>
             {connectedCount} of 3 systems connected
             {connectedCount === 0 && ' — connect at least 1 to proceed'}
           </span>
           {connectedCount === 3 && (
-            <span style={{ fontSize: '13px', color: c.success, fontWeight: 600 }}>
+            <span style={{ fontSize: '13px', color: 'var(--ok)', fontWeight: 600 }}>
               ✓ All systems ready
             </span>
           )}
         </div>
         <div style={{
           height: '4px',
-          background: c.border,
+          background: 'var(--hairline)',
           borderRadius: '2px',
           overflow: 'hidden',
         }}>
           <div style={{
             height: '100%',
             width: `${(connectedCount / 3) * 100}%`,
-            background: c.success,
+            background: 'var(--ok)',
             borderRadius: '2px',
             transition: 'width 0.4s cubic-bezier(0.16,1,0.3,1)',
           }} />
@@ -398,18 +407,18 @@ export default function OnboardingPage() {
               ...btnBase,
               width: 'auto',
               padding: '14px 40px',
-              background: c.success,
-              color: '#fff',
+              background: 'var(--ok)',
+              color: 'var(--canvas)',
               fontSize: '16px',
               borderRadius: tokens.radii.lg,
-              boxShadow: `0 4px 20px ${c.success}40`,
+              boxShadow: '0 4px 20px rgba(95, 200, 143, 0.25)',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
           >
             Continue to Dashboard →
           </button>
-          <p style={{ fontSize: '12px', color: c.textTertiary, marginTop: '12px' }}>
+          <p style={{ fontSize: '12px', color: 'var(--mute)', marginTop: '12px' }}>
             You can add more systems anytime from the Setup page
           </p>
         </div>

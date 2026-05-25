@@ -15,24 +15,23 @@ const NAV = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
-  const c = tokens.colors[theme as Theme];
   const pathname = usePathname();
 
   return (
     <div style={{
       display: 'flex',
       minHeight: '100vh',
-      background: c.bg,
-      color: c.text,
-      fontFamily: tokens.fonts.body,
+      background: 'var(--canvas)',
+      color: 'var(--ink)',
+      fontFamily: 'var(--font-display)',
     }}>
       <Header />
 
       {/* Sidebar */}
       <nav style={{
         width: tokens.sizes.sidebarWidth,
-        background: c.bgAlt,
-        borderRight: `1px solid ${c.border}`,
+        background: 'var(--canvas-soft)',
+        borderRight: '1px solid var(--hairline)',
         paddingTop: tokens.sizes.navHeight,
         position: 'fixed',
         height: '100vh',
@@ -49,7 +48,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.1em',
-                color: c.textTertiary,
+                color: 'var(--mute)',
                 padding: '0 12px',
                 marginBottom: '8px',
               }}>
@@ -66,12 +65,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       fontSize: '13px',
                       padding: '8px 12px',
                       borderRadius: tokens.radii.md,
-                      color: active ? c.primary : c.textSecondary,
+                      color: active ? 'var(--ink)' : 'var(--body-mid)',
                       fontWeight: active ? 600 : 500,
-                      background: active ? `${c.primary}12` : 'transparent',
+                      background: active ? 'var(--canvas)' : 'transparent',
+                      border: active ? '1px solid var(--hairline)' : '1px solid transparent',
                       textDecoration: 'none',
-                      transition: 'background 0.15s, color 0.15s',
+                      transition: 'background 0.15s, color 0.15s, border-color 0.15s',
                       marginBottom: '2px',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!active) {
+                        e.currentTarget.style.background = 'var(--canvas)';
+                        e.currentTarget.style.borderColor = 'var(--hairline)';
+                        e.currentTarget.style.color = 'var(--ink)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!active) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.borderColor = 'transparent';
+                        e.currentTarget.style.color = 'var(--body-mid)';
+                      }
                     }}
                   >
                     {label}
@@ -88,7 +102,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         marginLeft: tokens.sizes.sidebarWidth,
         marginTop: tokens.sizes.navHeight,
         flex: 1,
-        background: c.bg,
+        background: 'var(--canvas)',
         minHeight: `calc(100vh - ${tokens.sizes.navHeight})`,
       }}>
         {children}
