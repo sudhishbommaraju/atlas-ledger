@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getDriftEvents, getCanonicalState } from '@/lib/db';
 import { useTheme } from '@/app/providers';
-import { tokens, type Theme } from '@/lib/design-tokens';
+import { tokens } from '@/lib/design-tokens';
 
 export default function DashboardPage() {
   const [drifts, setDrifts] = useState<any[]>([]);
@@ -11,7 +11,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [connectedSystems, setConnectedSystems] = useState<string[]>([]);
   const { theme } = useTheme();
-  const c = tokens.colors[theme as Theme];
   const company_id = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
 
   useEffect(() => {
@@ -38,7 +37,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: '48px', color: c.textSecondary, fontFamily: tokens.fonts.body }}>
+      <div style={{ padding: '48px', color: 'var(--body-mid)', fontFamily: 'var(--font-display)' }}>
         Loading…
       </div>
     );
@@ -47,7 +46,7 @@ export default function DashboardPage() {
   const score = state?.state_confidence_score ?? 0.89;
   const confidence = Math.round(score * 100);
   const confidenceColor =
-    confidence > 80 ? c.success : confidence > 60 ? c.warning : c.danger;
+    confidence > 80 ? 'var(--ok)' : confidence > 60 ? 'var(--warn)' : 'var(--drift)';
 
   // static remediation cards for the demo
   const remediations = [
@@ -58,34 +57,34 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div style={{ padding: tokens.spacing.xl, fontFamily: tokens.fonts.body }}>
+    <div style={{ padding: '24px', fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
 
       {/* ── Page header ───────────────────────────────────────── */}
       <div style={{
         marginBottom: '28px',
         paddingBottom: '24px',
-        borderBottom: `1px solid ${c.border}`,
+        borderBottom: '1px solid var(--hairline)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
       }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, margin: '0 0 6px 0', color: c.text, letterSpacing: '-0.4px' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 800, margin: '0 0 6px 0', color: 'var(--ink)', letterSpacing: '-0.4px' }}>
             Meridian Marketplace
           </h1>
-          <p style={{ fontSize: '13px', color: c.textSecondary, margin: '0 0 10px 0' }}>
+          <p style={{ fontSize: '13px', color: 'var(--body-mid)', margin: '0 0 10px 0' }}>
             Continuous operational monitoring — Tier 1: Observe &amp; Alert
           </p>
           {connectedSystems.length > 0 && (
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {connectedSystems.includes('stripe') && (
-                <span style={{ fontSize: '11px', fontWeight: 700, background: `${c.success}18`, color: c.success, border: `1px solid ${c.success}40`, padding: '2px 8px', borderRadius: '4px' }}>✓ Stripe</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, background: 'rgba(95, 200, 143, 0.1)', color: 'var(--ok)', border: '1px solid rgba(95, 200, 143, 0.3)', padding: '2px 8px', borderRadius: '4px' }}>✓ Stripe</span>
               )}
               {connectedSystems.includes('bank') && (
-                <span style={{ fontSize: '11px', fontWeight: 700, background: `${c.success}18`, color: c.success, border: `1px solid ${c.success}40`, padding: '2px 8px', borderRadius: '4px' }}>✓ Bank</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, background: 'rgba(95, 200, 143, 0.1)', color: 'var(--ok)', border: '1px solid rgba(95, 200, 143, 0.3)', padding: '2px 8px', borderRadius: '4px' }}>✓ Bank</span>
               )}
               {connectedSystems.includes('erp') && (
-                <span style={{ fontSize: '11px', fontWeight: 700, background: `${c.success}18`, color: c.success, border: `1px solid ${c.success}40`, padding: '2px 8px', borderRadius: '4px' }}>✓ ERP</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, background: 'rgba(95, 200, 143, 0.1)', color: 'var(--ok)', border: '1px solid rgba(95, 200, 143, 0.3)', padding: '2px 8px', borderRadius: '4px' }}>✓ ERP</span>
               )}
             </div>
           )}
@@ -93,19 +92,19 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', gap: '10px' }}>
           <span style={{
             background: confidenceColor,
-            color: '#fff',
+            color: 'var(--canvas)',
             padding: '6px 14px',
-            borderRadius: tokens.radii.sm,
+            borderRadius: '6px',
             fontSize: '13px',
             fontWeight: 700,
           }}>
             Confidence: {confidence}%
           </span>
           <span style={{
-            background: drifts.length > 0 ? c.danger : c.success,
-            color: '#fff',
+            background: drifts.length > 0 ? 'var(--drift)' : 'var(--ok)',
+            color: 'var(--canvas)',
             padding: '6px 14px',
-            borderRadius: tokens.radii.sm,
+            borderRadius: '6px',
             fontSize: '13px',
             fontWeight: 700,
           }}>
@@ -116,8 +115,8 @@ export default function DashboardPage() {
 
       {/* ── Demo banner ───────────────────────────────────────── */}
       <div style={{
-        background: theme === 'light' ? '#FFFBEB' : '#1C1600',
-        border: `1px solid ${c.warning}50`,
+        background: 'rgba(255, 194, 133, 0.1)',
+        border: '1px solid rgba(255, 194, 133, 0.35)',
         borderRadius: tokens.radii.lg,
         padding: '14px 18px',
         marginBottom: '28px',
@@ -127,10 +126,10 @@ export default function DashboardPage() {
       }}>
         <span>⚠️</span>
         <div>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: c.warning }}>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--warn)' }}>
             Demo Mode — All actions are SIMULATED
           </div>
-          <div style={{ fontSize: '12px', color: c.textSecondary, marginTop: '3px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--body-mid)', marginTop: '3px' }}>
             Atlas detected 4 drift issues and fixed them automatically. Connect real API keys in Setup to monitor your actual systems.
           </div>
         </div>
@@ -141,7 +140,7 @@ export default function DashboardPage() {
 
         {/* Left — Issues Detected */}
         <div>
-          <h2 style={{ fontSize: '14px', fontWeight: 700, color: c.textSecondary, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 14px 0' }}>
+          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--body-mid)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 14px 0' }}>
             Issues Detected
           </h2>
           {drifts.length === 0 ? (
@@ -153,39 +152,41 @@ export default function DashboardPage() {
                 { type: 'ERP Reserve Drift',        severity: 'high',     desc: 'NetSuite reserve $184K below Stripe net balance. Recompute required.',      systems: ['ERP', 'Stripe'],    confidence: 87 },
                 { type: 'Settlement Timing Lag',    severity: 'info',     desc: '3 payouts pending > 48h past expected settlement window.',                  systems: ['Stripe', 'Bank'],   confidence: 78 },
               ].map((d, i) => {
-                const sc = d.severity === 'critical' ? c.danger : d.severity === 'high' ? c.warning : c.primary;
+                const scColor = d.severity === 'critical' ? 'var(--drift)' : d.severity === 'high' ? 'var(--warn)' : 'var(--ink)';
                 return (
                   <div key={i} style={{
-                    background: c.cardBg,
-                    border: `2px solid ${sc}`,
-                    borderRadius: tokens.radii.lg,
+                    background: 'var(--canvas-card)',
+                    border: `1px solid var(--hairline)`,
+                    borderLeft: `4px solid ${scColor}`,
+                    borderRadius: '8px',
                     padding: '16px',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: c.text }}>{d.type}</span>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>{d.type}</span>
                       <span style={{
                         fontSize: '10px',
                         fontWeight: 700,
                         textTransform: 'uppercase',
-                        color: sc,
-                        background: `${sc}18`,
+                        color: scColor,
+                        background: 'var(--canvas-soft)',
+                        border: `1px solid ${scColor}40`,
                         padding: '2px 7px',
                         borderRadius: '4px',
                       }}>{d.severity}</span>
                     </div>
-                    <p style={{ fontSize: '12px', color: c.textSecondary, margin: '0 0 10px 0', lineHeight: '1.5' }}>{d.desc}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--body-mid)', margin: '0 0 10px 0', lineHeight: '1.5' }}>{d.desc}</p>
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
                       {d.systems.map((s) => (
                         <span key={s} style={{
                           fontSize: '11px', fontWeight: 500,
-                          color: c.primary, background: `${c.primary}14`,
-                          border: `1px solid ${c.primary}30`,
+                          color: 'var(--ink)', background: 'var(--canvas-soft)',
+                          border: '1px solid var(--hairline)',
                           padding: '2px 8px', borderRadius: '4px',
                         }}>{s}</span>
                       ))}
                     </div>
-                    <div style={{ fontSize: '11px', color: c.textTertiary }}>
-                      Confidence: <strong style={{ color: c.text }}>{d.confidence}%</strong>
+                    <div style={{ fontSize: '11px', color: 'var(--mute)' }}>
+                      Confidence: <strong style={{ color: 'var(--ink)' }}>{d.confidence}%</strong>
                     </div>
                   </div>
                 );
@@ -194,32 +195,33 @@ export default function DashboardPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {drifts.map((drift) => {
-                const sc = drift.severity === 'critical' ? c.danger : drift.severity === 'high' ? c.warning : c.primary;
+                const scColor = drift.severity === 'critical' ? 'var(--drift)' : drift.severity === 'high' ? 'var(--warn)' : 'var(--ink)';
                 return (
                   <div key={drift.id} style={{
-                    background: c.cardBg,
-                    border: `2px solid ${sc}`,
-                    borderRadius: tokens.radii.lg,
+                    background: 'var(--canvas-card)',
+                    border: '1px solid var(--hairline)',
+                    borderLeft: `4px solid ${scColor}`,
+                    borderRadius: '8px',
                     padding: '16px',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: c.text, textTransform: 'capitalize' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', textTransform: 'capitalize' }}>
                         {drift.detector_type?.replace(/_/g, ' ')}
                       </span>
-                      <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: sc, background: `${sc}18`, padding: '2px 7px', borderRadius: '4px' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: scColor, background: 'var(--canvas-soft)', border: `1px solid ${scColor}40`, padding: '2px 7px', borderRadius: '4px' }}>
                         {drift.severity}
                       </span>
                     </div>
-                    <p style={{ fontSize: '12px', color: c.textSecondary, margin: '0 0 10px 0', lineHeight: '1.5' }}>{drift.description}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--body-mid)', margin: '0 0 10px 0', lineHeight: '1.5' }}>{drift.description}</p>
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
                       {drift.affected_systems?.map((s: string, i: number) => (
-                        <span key={i} style={{ fontSize: '11px', fontWeight: 500, color: c.primary, background: `${c.primary}14`, border: `1px solid ${c.primary}30`, padding: '2px 8px', borderRadius: '4px' }}>
+                        <span key={i} style={{ fontSize: '11px', fontWeight: 500, color: 'var(--ink)', background: 'var(--canvas-soft)', border: '1px solid var(--hairline)', padding: '2px 8px', borderRadius: '4px' }}>
                           {s}
                         </span>
                       ))}
                     </div>
-                    <div style={{ fontSize: '11px', color: c.textTertiary }}>
-                      Confidence: <strong style={{ color: c.text }}>{Math.round(drift.confidence_score * 100)}%</strong>
+                    <div style={{ fontSize: '11px', color: 'var(--mute)' }}>
+                      Confidence: <strong style={{ color: 'var(--ink)' }}>{Math.round(drift.confidence_score * 100)}%</strong>
                     </div>
                   </div>
                 );
@@ -230,34 +232,34 @@ export default function DashboardPage() {
 
         {/* Right — Actions Taken */}
         <div>
-          <h2 style={{ fontSize: '14px', fontWeight: 700, color: c.textSecondary, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 14px 0' }}>
+          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--body-mid)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 14px 0' }}>
             Actions Taken
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {remediations.map((r, i) => (
               <div key={i} style={{
-                background: c.cardBg,
-                border: `1px solid ${c.cardBorder}`,
-                borderLeft: `4px solid ${c.success}`,
-                borderRadius: tokens.radii.lg,
+                background: 'var(--canvas-card)',
+                border: '1px solid var(--hairline)',
+                borderLeft: '4px solid var(--ok)',
+                borderRadius: '8px',
                 padding: '16px',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <span style={{ fontSize: '16px' }}>{r.icon}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: c.text }}>{r.action}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>{r.action}</span>
                   </div>
-                  <span style={{ fontSize: '11px', color: c.textTertiary, whiteSpace: 'nowrap' }}>{r.time}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--mute)', whiteSpace: 'nowrap' }}>{r.time}</span>
                 </div>
-                <p style={{ fontSize: '12px', color: c.textSecondary, margin: '0 0 10px 0', lineHeight: '1.5', paddingLeft: '24px' }}>
+                <p style={{ fontSize: '12px', color: 'var(--body-mid)', margin: '0 0 10px 0', lineHeight: '1.5', paddingLeft: '24px' }}>
                   {r.detail}
                 </p>
                 <div style={{ paddingLeft: '24px' }}>
                   <span style={{
                     fontSize: '10px', fontWeight: 700,
-                    background: `${c.success}18`,
-                    color: c.success,
-                    border: `1px solid ${c.success}40`,
+                    background: 'rgba(95, 200, 143, 0.1)',
+                    color: 'var(--ok)',
+                    border: '1px solid rgba(95, 200, 143, 0.3)',
                     padding: '2px 7px', borderRadius: '4px',
                   }}>
                     AUTO-EXECUTED · SIM
@@ -271,8 +273,8 @@ export default function DashboardPage() {
 
       {/* ── Protected payout box ──────────────────────────────── */}
       <div style={{
-        background: theme === 'light' ? '#F0FDF4' : '#071A0F',
-        border: `2px solid ${c.success}`,
+        background: 'rgba(95, 200, 143, 0.1)',
+        border: '1px solid rgba(95, 200, 143, 0.35)',
         borderRadius: tokens.radii.xl,
         padding: '28px 32px',
         display: 'flex',
@@ -285,23 +287,23 @@ export default function DashboardPage() {
             fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.1em',
-            color: c.success,
+            color: 'var(--ok)',
             marginBottom: '6px',
           }}>
             Protected Payout
           </div>
-          <div style={{ fontSize: '36px', fontWeight: 800, color: c.text, letterSpacing: '-0.8px' }}>
+          <div style={{ fontSize: '36px', fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.8px' }}>
             $2,201,800
           </div>
-          <div style={{ fontSize: '13px', color: c.textSecondary, marginTop: '4px' }}>
+          <div style={{ fontSize: '13px', color: 'var(--body-mid)', marginTop: '4px' }}>
             Safe to disburse · 4 issues resolved automatically
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '12px', color: c.textSecondary, marginBottom: '4px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--body-mid)', marginBottom: '4px' }}>
             Confidence improved
           </div>
-          <div style={{ fontSize: '32px', fontWeight: 800, color: c.success }}>71% → 89%</div>
+          <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--ok)' }}>71% → 89%</div>
         </div>
       </div>
     </div>
